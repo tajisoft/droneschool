@@ -1,15 +1,17 @@
 const dgram = require('dgram');
 const mavlink = require('./mavlink_1.0');
+const sleep = require('sleep');
 
 
-class MavTransfer {
+class MavTest {
 
     constructor(io) {
-        this.startMav();
+        this.setupMav();
         this.setupUdp();
     }
 
     setupUdp() {
+        console.log("hoge");
         if (!this.mav) {
             console.log('wait mav init');
             setTimeout(this.startMav, 3000);
@@ -20,7 +22,6 @@ class MavTransfer {
         this.addresses = new Array();
         const self = this;
 
-        this.client = dgram.createSocket('udp4');
         this.server = dgram.createSocket('udp4');
 
         this.server.on('connect', () => {
@@ -51,10 +52,13 @@ class MavTransfer {
             console.log(`server listening ${address.address}:${address.port}`);
         });
 
-        this.server.bind(ConfigStore.getInstance().getStore().vehicle_udp_port);
+        this.server.bind(14551);
+
+        sleep.sleep(20);
     }
 
-    startMav() {
+    setupMav() {
+        console.log("mav setup");
         this.mav = new MAVLink({
             log: function (err, msg) {
                 // console.log(err);
@@ -63,10 +67,7 @@ class MavTransfer {
         }, 255, 1);
         var self = this;
         this.mav.on("message", function (msg) {
-            // VehicleStateに入力
-            if (self.vehicleState) {
-                self.vehicleState.handleMavlink(msg);
-            }
+            console.log(msg);
         });
     }
 
@@ -97,4 +98,5 @@ class MavTransfer {
     }
 }
 
-module.exports = MavTransfer;
+const mavtest = new MavTest();
+
