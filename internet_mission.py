@@ -5,7 +5,7 @@ import requests
 
 from dronekit import connect, VehicleMode, Command
 
-mission_url = "https://tajisoft.jp/mission_6th.waypoints"
+mission_url = "https://tajisoft.jp/mission-10th.waypoints"
 
 
 def download_mission(url):
@@ -79,7 +79,7 @@ def start_fly(v):
 
 def wait_mission_complete(v):
     while True:
-        if v.commands.next == 15:
+        if v.commands.next >= 225:
             print("ミッション完了")
             v.mode = VehicleMode("RTL")
             break
@@ -92,7 +92,7 @@ if __name__ == "__main__":
     missions = mission_parser(download_mission(mission_url))
 
     if missions is not None:
-        vehicle = connect_vehicle("tcp:127.0.0.1:5762")
+        vehicle = connect_vehicle("tcp:192.168.11.16:5773")
         upload_mission(vehicle, missions)
         start_fly(vehicle)
         wait_mission_complete(vehicle)
