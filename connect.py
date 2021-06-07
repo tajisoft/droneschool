@@ -1,4 +1,4 @@
-from dronekit import connect
+from dronekit import VehicleMode, connect
 import time
 
 # 接続
