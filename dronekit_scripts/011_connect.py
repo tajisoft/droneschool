@@ -1,6 +1,5 @@
-from time import sleep
 import time
-from dronekit import Vehicle, connect, VehicleMode
+from dronekit import connect
 
 # vehicle = connect('127.0.0.1:14551', wait_ready=True, timeout=60)
 vehicle = connect('tcp:127.0.0.1:5762', wait_ready=True, timeout=60)

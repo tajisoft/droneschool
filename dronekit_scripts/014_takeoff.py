@@ -1,12 +1,10 @@
-from dronekit import Vehicle
-
-
 import time
-from dronekit import Vehicle, connect, VehicleMode
+from dronekit import connect, VehicleMode
 
 vehicle = connect('127.0.0.1:14551', wait_ready=True, timeout=60)
 # vehicle = connect('tcp:127.0.0.1:5762', wait_ready=True, timeout=60)
 
+# arm不可能なモードもしくはセーフティロックがかかっている場合はこの処理でスタックする可能性があります
 while not vehicle.is_armable:
     print("初期化中です")
     time.sleep(1)
