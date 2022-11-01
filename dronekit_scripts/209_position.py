@@ -2,8 +2,8 @@ import time
 from dronekit import connect
 from pymavlink import mavutil
 
-# vehicle = connect('tcp:127.0.0.1:5762', wait_ready=True, timeout=60)
-vehicle = connect('127.0.0.1:14551', wait_ready=True, timeout=60)
+# vehicle = connect('127.0.0.1:14551', wait_ready=True, timeout=60)
+vehicle = connect('tcp:127.0.0.1:5762', wait_ready=True, timeout=60)
 
 msg = vehicle.message_factory.set_position_target_local_ned_encode(
     0,      # ブートからの時間（今回は未使用）

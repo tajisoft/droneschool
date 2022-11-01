@@ -2,8 +2,8 @@ import math
 import time
 from dronekit import connect
 
-# vehicle = connect('tcp:127.0.0.1:5762', wait_ready=True, timeout=60)
-vehicle = connect('127.0.0.1:14551', wait_ready=True, timeout=60)
+# vehicle = connect('127.0.0.1:14551', wait_ready=True, timeout=60)
+vehicle = connect('tcp:127.0.0.1:5762', wait_ready=True, timeout=60)
 
 def to_quaternion(roll = 0.0, pitch = 0.0, yaw = 0.0):
     """
