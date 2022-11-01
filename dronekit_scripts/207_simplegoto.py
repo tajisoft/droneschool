@@ -1,8 +1,8 @@
 # このコードは離陸した後で実行してください。
 from dronekit import LocationGlobalRelative, VehicleMode, connect
 
-# vehicle = connect('tcp:127.0.0.1:5762', wait_ready=True, timeout=60)
-vehicle = connect('127.0.0.1:14550', wait_ready=True, timeout=60)
+# vehicle = connect('127.0.0.1:14551', wait_ready=True, timeout=60)
+vehicle = connect('tcp:127.0.0.1:5762', wait_ready=True, timeout=60)
 
 # モードはGUIDED
 vehicle.mode = VehicleMode("GUIDED")

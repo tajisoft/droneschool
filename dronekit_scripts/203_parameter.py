@@ -1,8 +1,8 @@
 import time
 from dronekit import Vehicle, connect
 
-# vehicle = connect('tcp:127.0.0.1:5760', wait_ready=True, timeout=60)
-vehicle = connect('udp:127.0.0.1:14551', wait_ready=True, timeout=60)
+# vehicle = connect('127.0.0.1:14551', wait_ready=True, timeout=60)
+vehicle = connect('tcp:127.0.0.1:5762', wait_ready=True, timeout=60)
 
 # パラメータの参照
 # print文でパラメータを表示
