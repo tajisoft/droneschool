@@ -6,7 +6,9 @@ from pymavlink import mavutil
 
 
 # Create the connection
-master = mavutil.mavlink_connection('udpin:127.0.0.1:14551')
+master = mavutil.mavlink_connection("tcp:127.0.0.1:5762")
+# master = mavutil.mavlink_connection("udpin:127.0.0.1:14551")
+
 # Wait a heartbeat before sending commands
 master.wait_heartbeat()
 
