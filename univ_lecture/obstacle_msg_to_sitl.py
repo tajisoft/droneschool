@@ -25,7 +25,7 @@ angle_offset = 0 - 87 / 2
 distances = np.ones((distances_array_length,), dtype=np.uint16) * (max_depth_cm + 1)
 
 conn = mavutil.mavlink_connection(
-    'tcp:192.168.2.17:5763',
+    'tcp:192.168.1.5:5763',
     autoreconnect=True,
     source_system=1,
     source_component=93,
