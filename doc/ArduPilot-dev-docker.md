@@ -51,7 +51,7 @@ ardupilot@25b5653ae641:/ardupilot$
 ```
 ardupilot@25b5653ae641:/ardupilot$ export PATH=$HOME/.local/bin:$PATH
 ```
-（※Windowsの場合のみ）`sim_vehicle.py`から実行される`git rev-parse`コマンド失敗回避のため、`/ardupilot` をgitのセーフディレクトリに追加する必要がある。
+`sim_vehicle.py`から実行される`git rev-parse`コマンド失敗回避のため、`/ardupilot` をgitのセーフディレクトリに追加する必要がある。
 ```
 ardupilot@25b5653ae641:/ardupilot$ git config --global --add safe.directory /ardupilot
 ```
