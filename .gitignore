@@ -104,3 +104,11 @@ venv.bak/
 .mypy_cache/
 
 .DS_Store
+
+# sitl
+multiple_vehicles/eeprom.bin
+multiple_vehicles/mav.parm
+multiple_vehicles/mav.tlog
+multiple_vehicles/mav.tlog.raw
+multiple_vehicles/logs/*
+multiple_vehicles/terrain/*
