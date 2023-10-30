@@ -6,6 +6,7 @@ from dronekit import connect, LocationGlobalRelative
 
 vehicles = None
 wait_ready = False
+tower_loop_interval = 5
 
 def heartbeat_handler(self, name, val):
     self.my_type = val.type
@@ -48,7 +49,7 @@ def prepare_vehicles():
         if is_ok:
             break
 
-    # two rover
+    # Vehicle type are duplicated because we have two rovers. So need override.
     all_vehicles[3].my_type = 100
     all_vehicles[4].my_type = 101
     return all_vehicles
@@ -57,6 +58,7 @@ def prepare_vehicles():
 class ControlTower:
     targets = None
     is_complete = False
+    # Simple route
     routes = {
         1: { # QuadPlane
             'from': [35.760215, 140.379330, 0],
@@ -96,6 +98,7 @@ class ControlTower:
             my_route = self.routes[v.my_type]
             my_route['instance'] = v
     
+    # Launch a vehicle
     def _launch_vehicle(self, vehicle):
         log('Will launch {}'.format(vehicle.my_type))
         if vehicle.my_type == 2 or vehicle.my_type == 1:
@@ -109,11 +112,13 @@ class ControlTower:
             if not vehicle.armed:
                 vehicle.arm()
     
+    # Fly to destination
     def _fly_to(self, vehicle, dest):
         log('{} will fly to {}'.format(vehicle.my_type, dest))
         target = LocationGlobalRelative(dest[0], dest[1], dest[2])
         vehicle.simple_goto(target)
     
+    # Check the vehicle has arrived.
     def _is_arrived(self, vehicle, dest):
         target = LocationGlobalRelative(dest[0], dest[1], dest[2])
         dlat = vehicle.location.global_frame.lat - target.lat
@@ -126,10 +131,11 @@ class ControlTower:
         else:
             return dist <= 10
     
+    # Is all vehicles arrived??
     def _complete(self, vehicles):
         complete = True
         for v in vehicles:
-            complete = self._is_arrived(v, self.routes[v.my_type]['to'])
+            complete &= self._is_arrived(v, self.routes[v.my_type]['to'])
         return complete
             
     def start(self):
@@ -143,7 +149,7 @@ class ControlTower:
                     self._fly_to(v, my_route['to'])
                     my_route['instance'].status = 'OK'
                 else:
-                    # Already done
+                    # Already done or Plane
                     if not my_route['wait'] or (hasattr(v, 'status') and v.status == 'OK'):
                         continue
 
@@ -161,7 +167,7 @@ class ControlTower:
                         log('Wait for {}'.format(self.routes[my_route['wait']]['instance'].my_type))
             if self._complete(vehicles=vehicles):
                 break
-            time.sleep(5)
+            time.sleep(tower_loop_interval)
     
     def cleanup(self, vehicles):
         for v in vehicles:

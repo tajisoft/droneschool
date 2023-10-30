@@ -1,7 +1,7 @@
 #!/bin/bash
 
 SPEEDUP=10
-MP_IP=192.168.2.13 # IP of your pc which running mission planner
+MP_IP=192.168.11.11 # IP of your pc which running mission planner
 
 # Copterの処理
 function start_copter() {
