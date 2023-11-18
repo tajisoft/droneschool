@@ -1,6 +1,4 @@
 from pymavlink import mavutil
-import mavgenerated
-
 
 def download_mission(master):
     mission = []

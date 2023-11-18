@@ -15,7 +15,7 @@ master.wait_heartbeat()
 master.mav.command_long_send(
     master.target_system, master.target_component,
     mavutil.mavlink.MAV_CMD_SET_MESSAGE_INTERVAL,
-    0, 73, 100000, 0, 0, 0, 0, 0)
+    0, 33, 100000, 0, 0, 0, 0, 0)
 
 while True:
     try:
