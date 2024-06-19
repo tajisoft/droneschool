@@ -1,4 +1,5 @@
 from pymavlink import mavutil
+import time
 
 # 機体への接続
 master: mavutil.mavfile = mavutil.mavlink_connection(

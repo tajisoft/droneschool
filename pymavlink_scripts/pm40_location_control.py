@@ -1,3 +1,4 @@
+import time
 from pymavlink import mavutil
 
 # 機体への接続
