@@ -1,6 +1,7 @@
-Hello, ArduPilot!
+# Hello, ArduPilot!
 
-### Enviroment
+
+# 実行環境について
 ## Flight controller
 JFB110
 ## Companion Computer
@@ -8,7 +9,9 @@ Raspberry Pi zero + Waveshare EthernetHAT
 ## firmware
 ArduSub 4.6.0
 
-### Code 
+
+
+# Code 
 ## pm00_connect_heartbeat.py
 コメント追加
 Mavlinkutil USBシリアル使用・RaspberryPiGPIOピン使用時の設定追記
