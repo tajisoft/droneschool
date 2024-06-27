@@ -3,7 +3,11 @@ import time
 
 # 接続
 master: mavutil.mavfile = mavutil.mavlink_connection(
+<<<<<<< HEAD
     "127.0.0.1:14551", source_system=1, source_component=90)
+=======
+    "127.0.0.1:14551",  source_system=1, source_component=90)
+>>>>>>> upstream/master
 master.wait_heartbeat()
 print("接続完了")
 
