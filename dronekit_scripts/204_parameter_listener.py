@@ -3,7 +3,7 @@ import time
 from dronekit import connect
 
 # vehicle = connect('127.0.0.1:14551', wait_ready=True, timeout=60)
-vehicle = connect('tcp:127.0.0.1:5762', wait_ready=True, timeout=60)
+vehicle = connect('tcp:10.0.2.135:5762', wait_ready=False, timeout=60)
 
 
 # コールバック関数
