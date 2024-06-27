@@ -3,11 +3,13 @@ import sys
 
 # 機体への接続
 master: mavutil.mavfile = mavutil.mavlink_connection(
-    "127.0.0.1:14551", source_system=1, source_component=90)
+    # "127.0.0.1:14551",
+    "tcp:10.0.2.135:5762",
+    source_system=1, source_component=90)
 master.wait_heartbeat()
 
 # 変更後のモード
-mode = "RTL"
+mode = "AUTO"
 
 # モードが有効かをチェック
 if mode not in master.mode_mapping():
