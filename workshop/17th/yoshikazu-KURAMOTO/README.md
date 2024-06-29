@@ -39,3 +39,22 @@ ArduSubのモードが認識されたりされず、変更後モードの表示�
 要調査
 Mapping がうまく表示されるときとされないときがある。
 
+## pm10_off.py
+コメント追加
+Arducopter（SITL）での確認
+
+## pm20_read_params.py
+コメント追加
+Arducopter（SITL）での確認
+
+## pm21_set_param.py
+コメント追加
+Arducopter（SITL）での確認
+
+## pm30_home_location.py
+コメント追加
+Arducopter（SITL）での確認
+
+
+
+
