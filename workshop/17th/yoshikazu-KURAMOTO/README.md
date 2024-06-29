@@ -1,9 +1,8 @@
 # Hello, ArduPilot!
 
-
 ## 実行環境
 ### Flight controller
-- JFB110(ardusub4.6.0_stable)
+- JFB110(ardusub4.6.0)
 - SITL(arducopter_stable)
 ### Companion Computer
 - Raspberry Pi zero + Waveshare EthernetHAT
@@ -40,38 +39,49 @@
 
 ### 7\. pm10_off.py
 - コメント追加
-- Arducopter（SITL）での確認
+- Arducopter（SITL）での作動確認
 
 ### 8\. pm20_read_params.py
 - コメント追加
-- Arducopter（SITL）での確認
+- Arducopter（SITL）での作動確認
 
 ### 9\. pm21_set_param.py
 - コメント追加
-- Arducopter（SITL）での確認
+- Arducopter（SITL）での作動確認
 
 ### 10\. pm30_home_location.py
 - コメント追加
-- Arducopter（SITL）での確認
+- Arducopter（SITL）での作動確認
 
 ### 11\. pm31_home_location_thread.py
 - コメント追加
-- Arducopter（SITL）での確認
+- Arducopter（SITL）での作動確認
 
 ### 12\. pm40_location_control.py
 - コメント追加
 - 飛行モードの表示＆WPまでの残距離も表示するように変更
-- Arducopter（SITL）での確認
+- Arducopter（SITL）での作動確認
 
 ### 13\. pm41_altitude_control.py
 - コメント追加
-- Arducopter（SITL）での確認
+- Arducopter（SITL）での作動確認
 
 ### 14\. pm42_position_control.py
 - コメント追加
+- Arducopter（SITL）での作動確認
 
+### 15\. pm43_command.py
+- コメント追加
+- Arducopter（SITL）で作動確認
+
+### 16\. pm50_mission_basics.py
+- コメント追加
+- Arducopter（SITL）で作動確認
 
 ## drone-kit code
-### 1\.
+### 1\. 011_connect.py
+- 速度単位追加
+- 速度小数点以下第2位まで表示
+- Arducopter（SITL）で作動確認
 
 
