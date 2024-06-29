@@ -28,14 +28,6 @@ master.mav.set_position_target_global_int_send(
     0, 0, 0, 0, 0, 0, 0, 0, 0,
 )
 
-# ARM
-master.arducopter_arm()
-#ARM終了まで待つ master.motors_armed()を使うとマニュアルでチェックできる
-print("Waiting for the vehicle to arm")
-master.motors_armed_wait()
-#master.motors_armed()
-print("ARMED")
-
 # 位置情報をログに出し続ける
 while True:
     msg = master.recv_match(type='GLOBAL_POSITION_INT', blocking = True)
