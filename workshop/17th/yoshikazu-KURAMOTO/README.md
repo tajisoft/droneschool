@@ -1,33 +1,33 @@
 # Hello, ArduPilot!
 
 
-# 実行環境について
-## Flight controller
+## 実行環境について
+### Flight controller
 JFB110
-## Companion Computer
+### Companion Computer
 Raspberry Pi zero + Waveshare EthernetHAT
-## firmware
+### firmware
 ArduSub 4.6.0
 
 
 
-# Code 
-## pm00_connect_heartbeat.py
+## Code 
+1.\ pm00_connect_heartbeat.py
 コメント追加
 Mavlinkutil USBシリアル使用・RaspberryPiGPIOピン使用時の設定追記
 
-## pm01_message_basics.py
+2.\ pm01_message_basics.py
 コメント追加
 Mavlinkutil USBシリアル使用・RaspberryPiGPIOピン使用時の設定追記
 実行結果記載
 
-## pm01_message_dump.py
+3.\ pm01_message_dump.py
 mavutil.mavlink_connection udpinを使った設定追加
 
-## pm02_arm_disarm.py
+4.\ pm02_arm_disarm.py
 master.mav.command_long_sendを使った設定方法追加
 
-## pm03_change_mode.py
+5.\ pm03_change_mode.py
 STABILIZE⇒2
 MANUAL⇒0
 となり、ArduSubのflightmodeの番号と整合しないためUNKNOWN飛行モードとなる
