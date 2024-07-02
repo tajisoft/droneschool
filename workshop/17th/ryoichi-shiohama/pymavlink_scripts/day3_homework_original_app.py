@@ -9,3 +9,14 @@ master: mavutil.mavfile = mavutil.mavlink_connection(
 )
 master.wait_heartbeat()
 print("接続完了")
+
+# GUIDEDモードに変更
+mode = 'GUIDED'
+master.set_mode_apm(master.mode_mapping()[mode])
+
+# モード変更を確認
+while True:
+  if master.flightmode == mode:
+    break
+  master.recv_msg()
+print("モード変更完了")
