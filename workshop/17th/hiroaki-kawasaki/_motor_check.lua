@@ -4,7 +4,7 @@
 
 local port = serial:find_serial(0)
 local MODE_ACRO = 1
-local OUTPUT_PWM = 1000 * 0.07 + 1000
+local OUTPUT_PWM_DEFAULT = 1000 * 0.07 + 1000
 local EXP_RPM = 1500
 local OK_RANGE = 0.2
 
@@ -88,6 +88,12 @@ end
 -- データを読み込む関数
 function task ()
   local current_mode = vehicle:get_mode()
+
+  local output_pwm = OUTPUT_PWM_DEFAULT
+  local mot_spin_arm = param:get('MOT_SPIN_ARM')
+  if mot_spin_arm then
+    output_pwm = 1000 * mot_spin_arm + 1000
+  end
   
   if last_mode ~= MODE_ACRO and current_mode == MODE_ACRO then
     if  arming:is_armed() then
@@ -100,12 +106,7 @@ function task ()
   last_mode = current_mode
 
   if motor_index > 0 then
-    if motor_array[motor_index] == nil then
-      gcs:send_text(6, "Error: motor_array[" .. motor_index .. "] is nil")
-    else
-        SRV_Channels:set_output_pwm_chan_timeout(motor_array[motor_index], OUTPUT_PWM, 1100)
-    end
-    -- SRV_Channels:set_output_pwm_chan_timeout(motor_array[motor_index], OUTPUT_PWM, 1100)
+    SRV_Channels:set_output_pwm_chan_timeout(motor_array[motor_index], output_pwm, 1100)
     tries = tries + 1
     if tries > 15 then
       gcs:send_text(0, "*** MTR" .. motor_index .. ": NG")
