@@ -33,12 +33,6 @@ local rpm2 = 0
 local rpm3 = 0
 local rpm4 = 0
 
--- ４バイト一組のデータを受信する
--- 0: 必ず0xff
--- 1: 16ビット整数データのLOW8bit
--- 2: 16ビット整数データのHIGH8bit
--- 3: 1と2の8bitの排他的論理和
-
 function get_rpm()
   while port:available() > 0 do
     if port:available() >= 10 then  -- 必要なバイト数があるか確認
@@ -107,7 +101,7 @@ function task ()
   end
 
   if get_rpm() >= 0 and motor_index > 0 then      
-    gcs:send_text(0, "rpm: " .. rpm[1] ..", ".. rpm[2] ..", " .. rpm[3] ..", " .. rpm[4])
+    gcs:send_text(6, "rpm: " .. rpm[1] ..", ".. rpm[2] ..", " .. rpm[3] ..", " .. rpm[4])
     if rpm[motor_array[motor_index] + 1] > EXP_RPM * (1 - OK_RANGE) and rpm[motor_array[motor_index] + 1] < EXP_RPM * (1 + OK_RANGE) then
       ok_count = ok_count + 1
       if ok_count >= 3 then 
@@ -125,7 +119,6 @@ function task ()
       ok_count = 0
     end
   end
-
   return task, 500
 end
 
