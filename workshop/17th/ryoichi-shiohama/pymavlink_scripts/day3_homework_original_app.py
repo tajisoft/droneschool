@@ -59,5 +59,7 @@ while True:
 
 # TODO:目標高度到達後、任意の軌道を描く（まずは三角など、次に努力目標で星？）
 
+# TODO: RTLできたらしたい
+
 # 切断
 master.close()
