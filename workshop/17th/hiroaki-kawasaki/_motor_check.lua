@@ -28,11 +28,6 @@ gcs:send_text(0, ">> Discarded serial buffer: " .. discard_bytes)
 local ok_count = 0
 local last_mode = 0
 
-local rpm1 = 0
-local rpm2 = 0
-local rpm3 = 0
-local rpm4 = 0
-
 function get_rpm()
   while port:available() > 0 do
     if port:available() >= 10 then  -- 必要なバイト数があるか確認
@@ -83,7 +78,7 @@ function task ()
   
   if last_mode ~= MODE_ACRO and current_mode == MODE_ACRO then
     if  arming:is_armed() then
-      gcs:send_text(0, "*** ERROR: Cannot be performed when already armed")
+      gcs:send_text(0, "*** ERROR: Cannot execute when already armed")
     else
       motor_index = 1
       tries = 0
