@@ -5,11 +5,14 @@
 local port = serial:find_serial(0)
 local MODE_ACRO = 1
 local OUTPUT_PWM = 1000 * 0.07 + 1000
-local EXP_RPM = 1600
+local EXP_RPM = 1500
 local OK_RANGE = 0.2
 
+local motor_array = {0, 3, 1, 2}
+local rx_data = {}
+
 local tries = 0
-local motor = -1
+local motor_index = -1
 
 port:begin(115200)
 port:set_flow_control(0)
@@ -24,6 +27,11 @@ gcs:send_text(0, ">> Discarded serial buffer: " .. discard_bytes)
 local ok_count = 0
 local last_mode = 0
 
+local rpm1 = 0
+local rpm2 = 0
+local rpm3 = 0
+local rpm4 = 0
+
 -- ４バイト一組のデータを受信する
 -- 0: 必ず0xff
 -- 1: 16ビット整数データのLOW8bit
@@ -32,7 +40,7 @@ local last_mode = 0
 
 function get_rpm()
   while port:available() > 0 do
-    if port:available() >= 4 then  -- 必要なバイト数があるか確認
+    if port:available() >= 10 then  -- 必要なバイト数があるか確認
 
       -- 各バイトを整数に変換
       local byte0 = port:read()
@@ -42,17 +50,28 @@ function get_rpm()
         local byte1 = port:read()
         local byte2 = port:read()
         local byte3 = port:read()
+        local byte4 = port:read()
+        local byte5 = port:read()
+        local byte6 = port:read()
+        local byte7 = port:read()
+        local byte8 = port:read()
+        local byte9 = port:read()
 
-        -- 16ビット整数データを組み立てる
-        local rpm = byte1 + (byte2 * 256)  -- LOW8bitとHIGH8bitから16ビット整数を構築
+        local sum = byte1 + byte2 + byte3 + byte4 + byte5 + byte6 + byte7 + byte8
+        sum = sum & 0xff 
 
         -- 排他的論理和をチェック
-        if byte3 == (byte1 ~ byte2) then
+        if byte9 == sum then
           -- 正しいデータを取得
-          return rpm
+          -- 16ビット整数データを組み立てる
+          rpm1 = byte1 + (byte2 * 256)  -- LOW8bitとHIGH8bitから16ビット整数を構築
+          rpm2 = byte3 + (byte4 * 256)
+          rpm3 = byte5 + (byte6 * 256)
+          rpm4 = byte7 + (byte8 * 256)
+          return 0
         else
           -- データエラー時の処理
-          gcs:send_text(0, "Data error: XOR mismatch")
+          gcs:send_text(0, "Data error: SUM mismatch")
         end
       else
         -- フォーマットエラー時、読み捨て
@@ -74,35 +93,49 @@ function task ()
     if  arming:is_armed() then
       gcs:send_text(0, "*** ERROR: Cannot be performed when already armed")
     else
-      motor = 0
+      motor_index = 1
       tries = 0
     end
   end
   last_mode = current_mode
 
-  if motor >= 0 then
-    SRV_Channels:set_output_pwm_chan_timeout(0, OUTPUT_PWM, 1100)
-    SRV_Channels:set_output_pwm_chan_timeout(motor, OUTPUT_PWM, 1100)
+  if motor_index > 0 then
+    if motor_array[motor_index] == nil then
+      gcs:send_text(6, "Error: motor_array[" .. motor_index .. "] is nil")
+    else
+        SRV_Channels:set_output_pwm_chan_timeout(motor_array[motor_index], OUTPUT_PWM, 1100)
+    end
+    -- SRV_Channels:set_output_pwm_chan_timeout(motor_array[motor_index], OUTPUT_PWM, 1100)
     tries = tries + 1
     if tries > 15 then
-      gcs:send_text(0, "*** MTR" .. motor .. ": NG")
-      motor = -1
+      gcs:send_text(0, "*** MTR" .. motor_index .. ": NG")
+      motor_index = -1
     end
   end
 
   local rpm = get_rpm()
-  if rpm >= 0 and motor >= 0 then      
-    gcs:send_text(0, "Motor rpm: " .. rpm)
+  if rpm >= 0 and motor_index > 0 then      
+    gcs:send_text(0, "motor_index rpm: " .. rpm1 .." ".. rpm2 .." " .. rpm3 .." " .. rpm4)
+    if motor_array[motor_index] == 0 then
+      rpm=rpm2
+    elseif motor_array[motor_index] == 1 then
+      rpm=rpm3
+    elseif motor_array[motor_index] == 2 then
+      rpm=rpm1
+    else
+      rpm=rpm4
+      
+    end
     if rpm > EXP_RPM * (1 - OK_RANGE) and rpm < EXP_RPM * (1 + OK_RANGE) then
       ok_count = ok_count + 1
       if ok_count >= 3 then 
-        gcs:send_text(0, ">>> MTR" .. motor .. ": OK")
+        gcs:send_text(0, ">>> MTR" .. motor_index .. ": OK")
         tries = 0
         ok_count = 0
-        motor = motor + 1
-        if motor >= 4 then
+        motor_index = motor_index + 1
+        if motor_index > 4 then
           gcs:send_text(0, ">>> arming...")
-          motor = -1
+          motor_index = -1
           arming:arm()
         end
       end
