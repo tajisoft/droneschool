@@ -99,6 +99,7 @@ function task ()
 
   local ok_range = param:get('SCR_USER3')
   if ok_range and ok_range ~= 0 then
+    -- percent
     OK_RANGE = ok_range / 100
   else
     OK_RANGE = OK_RANGE_DEFAULT
