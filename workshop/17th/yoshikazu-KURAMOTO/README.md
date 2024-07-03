@@ -84,4 +84,16 @@
 - 速度小数点以下第2位まで表示
 - Arducopter（SITL）で作動確認
 
+### 2\. 012_attribute.py
+- Arducopter（SITL）で作動確認 
+
+### 3\. 013_attribute_util.py
+- Arducopter（SITL）で作動確認
+
+### 4\. 014_takeoff.py
+- タイムアウトして正常に動かない
+
+### 5\. 015_takeoff.py
+- Arducopter(SITL)で確認
+
 

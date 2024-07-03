@@ -2,6 +2,7 @@ import time
 from dronekit import connect, VehicleMode
 
 vehicle = connect('127.0.0.1:57262', wait_ready=True, timeout=60)
+# vehicle = connect('tcp:127.0.0.1:14551', wait_ready=True, timeout=60)
 
 # arm不可能なモードもしくはセーフティロックがかかっている場合はこの処理でスタックする可能性があります
 while not vehicle.is_armable:
@@ -27,6 +28,5 @@ while True:
     if vehicle.location.global_relative_frame.alt >+ targetAlttude * 0.95 :
         print("目標深度に到達しました")
         break
-
 
 time.sleep(1)
