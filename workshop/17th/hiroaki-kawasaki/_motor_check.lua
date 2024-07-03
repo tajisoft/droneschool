@@ -2,10 +2,17 @@
 
 ---@diagnostic disable: need-check-nil
 
+-- SCR_USER1: EXEC_MODE
+-- SCR_USER2: EXP_RPM
+-- SCR_USER3: OK_RANGE (percent)
+
 local MODE_ACRO = 1
+local EXEC_MODE = MODE_ACRO
 local OUTPUT_PWM_DEFAULT = 1000 * 0.07 + 1000
-local EXP_RPM = 1500
-local OK_RANGE = 0.2
+local EXP_RPM_DEFAULT = 1500
+local EXP_RPM = EXP_RPM_DEFAULT
+local OK_RANGE_DEFAULT = 0.2
+local OK_RANGE = OK_RANGE_DEFAULT
 
 local port = serial:find_serial(0)
 local motor_array = {0, 3, 1, 2}
@@ -75,8 +82,29 @@ function task ()
   if mot_spin_arm then
     output_pwm = 1000 * mot_spin_arm + 1000
   end
-  
-  if last_mode ~= MODE_ACRO and current_mode == MODE_ACRO then
+
+  local exec_mode = param:get('SCR_USER1')
+  if exec_mode and exec_mode ~= 0 then
+    EXEC_MODE = exec_mode
+  else
+    EXEC_MODE = MODE_ACRO
+  end
+
+  local exp_rpm = param:get('SCR_USER2')
+  if exp_rpm and exp_rpm ~= 0 then
+    EXP_RPM = exp_rpm
+  else
+    EXP_RPM = EXP_RPM_DEFAULT
+  end
+
+  local ok_range = param:get('SCR_USER3')
+  if ok_range and ok_range ~= 0 then
+    OK_RANGE = ok_range / 100
+  else
+    OK_RANGE = OK_RANGE_DEFAULT
+  end
+
+  if last_mode ~= EXEC_MODE and current_mode == EXEC_MODE then
     if  arming:is_armed() then
       gcs:send_text(0, "*** ERROR: Cannot execute when already armed")
     else
@@ -95,23 +123,25 @@ function task ()
     end
   end
 
-  if get_rpm() >= 0 and motor_index > 0 then      
+  if get_rpm() >= 0 then    
     gcs:send_text(6, "rpm: " .. rpm[1] ..", ".. rpm[2] ..", " .. rpm[3] ..", " .. rpm[4])
-    if rpm[motor_array[motor_index] + 1] > EXP_RPM * (1 - OK_RANGE) and rpm[motor_array[motor_index] + 1] < EXP_RPM * (1 + OK_RANGE) then
-      ok_count = ok_count + 1
-      if ok_count >= 3 then 
-        gcs:send_text(0, ">>> MTR" .. motor_index .. ": OK")
-        tries = 0
-        ok_count = 0
-        motor_index = motor_index + 1
-        if motor_index > 4 then
-          gcs:send_text(0, ">>> arming...")
-          motor_index = -1
-          arming:arm()
+    if motor_index > 0 then
+      if rpm[motor_array[motor_index] + 1] > EXP_RPM * (1 - OK_RANGE) and rpm[motor_array[motor_index] + 1] < EXP_RPM * (1 + OK_RANGE) then
+        ok_count = ok_count + 1
+        if ok_count >= 3 then 
+          gcs:send_text(0, ">>> MTR" .. motor_index .. ": OK")
+          tries = 0
+          ok_count = 0
+          motor_index = motor_index + 1
+          if motor_index > 4 then
+            gcs:send_text(0, ">>> arming...")
+            motor_index = -1
+            arming:arm()
+          end
         end
+      else
+        ok_count = 0
       end
-    else
-      ok_count = 0
     end
   end
   return task, 500
