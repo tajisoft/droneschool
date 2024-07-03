@@ -35,6 +35,14 @@ gcs:send_text(0, ">> Discarded serial buffer: " .. discard_bytes)
 local ok_count = 0
 local last_mode = 0
 
+-- Serial data format
+-- 0  : 0xff const
+-- 1-2: motor1 rpm
+-- 3-4: motor2 rpm
+-- 5-6: motot3 rpm
+-- 7-8: motot4 rpm
+-- 9  : sum(1 to 8)
+
 function get_rpm()
   while port:available() > 0 do
     if port:available() >= 10 then  -- 必要なバイト数があるか確認
