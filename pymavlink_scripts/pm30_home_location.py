@@ -2,13 +2,13 @@ from pymavlink import mavutil
 
 # 機体への接続
 master: mavutil.mavfile = mavutil.mavlink_connection(
-    "tcp:10.0.2.135:5762", source_system=1, source_component=90)
+    "127.0.0.1:14551", source_system=1, source_component=90)
 master.wait_heartbeat()
 
 # メッセージレート変更
-msg = master.mav.request_data_stream_encode(
-    master.target_system, master.target_component, 0, 10, 1)
-master.mav.send(msg)
+# msg = master.mav.request_data_stream_encode(
+#     master.target_system, master.target_component, 0, 10, 1)
+# master.mav.send(msg)
 
 while True:
     # HOME_POSITIONメッセージを受信, アームのタイミングで受信できる
