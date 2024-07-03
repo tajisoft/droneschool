@@ -34,6 +34,7 @@ Disarm状態のときに、
 
 実行には `SERIAL5_PROTOCOL`を `28(Scriipting)` に設定する必要がある。
 
+![S__9871363](https://github.com/tajisoft/droneschool/assets/85010654/91ef5019-3dc3-4e68-aadb-3633f854a906)
 
 ### Serial data format
 コンパニオンコンピューター（ESP32S3）から、シリアル通信で、１秒間隔で各モーターの回転数が送信されている。
@@ -64,3 +65,4 @@ MAVLinkの「ESC_STATUS (291) (WIP)」や「RAW_RPM(339)」などの利用が好
 
 【目的】
 飛行訓練用として、高度が低い場合、最高速度が低速で、安全な高度まで上昇したら最高速度が高速になる
+
