@@ -33,12 +33,18 @@ target_altitude = 3
 master.mav.command_long_send(
   master.target_system,
   master.target_component,
-  mavutil.mavlink.MAV_CMD_MAV_TAKEOFF,
+  mavutil.mavlink.MAV_CMD_NAV_TAKEOFF,
   0, 0, 0, 0, 0, 0, 0,
   target_altitude
 )
 
 # TODO: メッセージレート変更か？検討する
+master.mav.command_long_send(
+  master.target_system,
+  master.target_component,
+  mavutil.mavlink.MAV_CMD_SET_MESSAGE_INTERVAL,
+  0, 33, 100000, 0, 0, 0, 0, 0
+)
 
 # 目標高度への到達を確認
 while True:
