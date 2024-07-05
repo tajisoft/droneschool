@@ -10,6 +10,8 @@ def download_mission(master):
     mission_count = master.recv_match(
         type='MISSION_COUNT', blocking=True).count
 
+    # print(f"ミッション数: {mission_count}")
+
     # ミッションアイテムをダウンロード
     for i in range(mission_count):
         master.mav.mission_request_int_send(

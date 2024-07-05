@@ -117,7 +117,7 @@ while True:
 
 # 目標高度到達後、任意の軌道を描く
 # TODO: うまく動作しないためコメントアウトしている
-# do_mission()
+# do_mission(master, target_altitude)
 
 
 # RTLモードに変更
