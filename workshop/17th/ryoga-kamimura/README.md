@@ -18,7 +18,8 @@ Dronekit-pythonを使用。離陸後、コマンドラインで入力された�
 ## 必要ライブラリ
 Dronekit-python  
 ## アプリケーション実行手順  
-- MissonPlannerでシミュレーションを起動  
+- MissonPlannerでシミュレーションを起動
+- ドローンをGuidedモードに変更し離陸させる  
 - コマンドラインでスクリプトを実行、目標の距離を入力  
 ```
 python move_by_input_meter.py
