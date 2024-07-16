@@ -1,7 +1,7 @@
 from dronekit import connect, VehicleMode
 import time
 
-# 期待接続
+# 機体接続
 vehicle = connect('127.0.0.1:14551', wait_ready=True, timeout=60)
 
 # 離陸高度
