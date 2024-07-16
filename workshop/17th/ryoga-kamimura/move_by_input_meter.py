@@ -126,14 +126,14 @@ def main():
                 print(f'Distance to target location: {distance:.2f} m')
                 time.sleep(1)
             
-            #到着した後にAUTOモードに変更
-            if vehicle.mode != VehicleMode('AUTO'):
-                vehicle.mode = VehicleMode('AUTO')
+            # #到着した後にAUTOモードに変更
+            # if vehicle.mode != VehicleMode('AUTO'):
+            #     vehicle.mode = VehicleMode('AUTO')
                 
-            #モードが変わるまで待つ
-            while vehicle.mode != VehicleMode('AUTO'):
-                print(f'Changing mode to AUTO')
-                time.sleep(1)
+            # #モードが変わるまで待つ
+            # while vehicle.mode != VehicleMode('AUTO'):
+            #     print(f'Changing mode to AUTO')
+            #     time.sleep(1)
     
     except KeyboardInterrupt:
         print("\nScript interrupted by the user")
