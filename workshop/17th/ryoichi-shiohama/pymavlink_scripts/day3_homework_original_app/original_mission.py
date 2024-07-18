@@ -1,12 +1,12 @@
 from pymavlink import mavutil
 import time
-from mission_utils import download_mission, add_waypoint, upload_mission, print_mission, create_mission, calculate_distance
+from math import radians, sin, cos, sqrt, atan2
+from mission_utils import create_triangle_mission
 
 # 自動航行の処理を実行する（三角形ウェイポイント設定 > Autoモード）
-# TODO: ミッションが空でウェイポイント作成がうまくいかない状態
-def do_mission(master, target_altitude):
+def do_triangle_mission(master, target_altitude):
   # ミッションの作成とアップロード
-  create_mission(master, target_altitude)
+  mission = create_triangle_mission(master, target_altitude)
 
   # ミッションモードに変更
   mission_mode = 'AUTO'
@@ -29,9 +29,22 @@ def do_mission(master, target_altitude):
       time.sleep(0.1)
 
 
+# ホームロケーションとの距離を計算する
+def calculate_distance(lat1, lon1, lat2, lon2):
+    R = 6371000  # 地球の半径（メートル）
+    dlat = radians(lat2 - lat1) # lat distance
+    dlon = radians(lon1 - lon2) # lon distance
+
+    # 球面上の2点間の距離を計算（ハバーサインの公式）
+    a = sin(dlat / 2) * sin(dlat / 2) + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon / 2) * sin(dlon / 2)
+    c = 2 * atan2(sqrt(a), sqrt(1 - a))
+    distance = R * c
+    return distance
+
+
 # 機体（シミュレータ）への接続
 master: mavutil.mavfile = mavutil.mavlink_connection(
-  "tcp:10.0.2.135:5762",
+  "tcp:10.0.2.134:5762",
   source_system=1,
   source_component=90
 )
@@ -115,9 +128,8 @@ while True:
   time.sleep(0.1)
 
 
-# 目標高度到達後、任意の軌道を描く
-# TODO: うまく動作しないためコメントアウトしている
-# do_mission(master, target_altitude)
+# 目標高度到達後、三角形の軌道を描く
+do_triangle_mission(master, target_altitude)
 
 
 # RTLモードに変更
