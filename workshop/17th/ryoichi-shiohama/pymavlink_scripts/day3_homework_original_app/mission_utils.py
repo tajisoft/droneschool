@@ -1,59 +1,25 @@
 from pymavlink import mavutil
-from math import radians, sin, cos, sqrt, atan2
-
-def download_mission(master):
-    mission = []
-
-    # ミッションアイテムの数を取得
-    master.mav.mission_request_list_send(
-        master.target_system, master.target_component)
-    mission_count = master.recv_match(
-        type='MISSION_COUNT', blocking=True).count
-
-    # print(f"ミッション数: {mission_count}")
-
-    # ミッションアイテムをダウンロード
-    for i in range(mission_count):
-        master.mav.mission_request_int_send(
-            master.target_system, master.target_component, i)
-        item = master.recv_match(type='MISSION_ITEM_INT', blocking=True)
-        new_waypoint = mavutil.mavlink.MAVLink_mission_item_int_message(
-            master.target_system,
-            master.target_component,
-            item.seq,
-            item.frame,
-            item.command,
-            item.current,
-            item.autocontinue,
-            item.param1, item.param2, item.param3, item.param4,
-            item.x, item.y, item.z,
-        )
-        mission.append(new_waypoint)
-
-    return mission
+import time
 
 def add_waypoint(mission, lat, lon, alt, current=0):
     # 新しいウェイポイントを追加
-    if mission:
-        new_waypoint = mavutil.mavlink.MAVLink_mission_item_int_message(
-            mission[0].target_system,
-            mission[0].target_component,
-            len(mission),
-            mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT,
-            mavutil.mavlink.MAV_CMD_NAV_WAYPOINT,
-            current,
-            1, # 1なら自動的に次のウェイポイントに進む
-            0,
-            0,
-            0,
-            0,
-            int(lat * 1e7),
-            int(lon * 1e7),
-            int(alt) # TODO: *1000が必要か検討する
-        )
-        mission.append(new_waypoint)
-    else:
-        print("ミッションが空です。他のウェイポイントを追加する前に、初期のウェイポイントを追加してください。")
+    new_waypoint = mavutil.mavlink.MAVLink_mission_item_int_message(
+        1,
+        0,
+        len(mission),
+        mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT,
+        mavutil.mavlink.MAV_CMD_NAV_WAYPOINT,
+        current,
+        1, # 1なら自動的に次のウェイポイントに進む
+        0,
+        0,
+        0,
+        0,
+        int(lat * 1e7),
+        int(lon * 1e7),
+        int(alt)
+    )
+    mission.append(new_waypoint)
 
 
 def upload_mission(master, mission):
@@ -71,56 +37,66 @@ def upload_mission(master, mission):
         master.target_system, master.target_component)
 
 
-def print_mission(mission):
-    for element in mission:
-        print(f"e: {element}")
-
-
-def create_mission(master, target_altitude):
-    # ミッションのダウンロード
-    downloaded_mission = download_mission(master)
-    print(f"ミッションダウンロード完了: {downloaded_mission}")
-    print_mission(downloaded_mission)
-
+def create_triangle_mission(master, target_altitude):
     # 現在位置取得
     print("現在位置の取得開始")
     current_position = master.recv_match(type='GLOBAL_POSITION_INT', blocking=True)
-    home_lat = current_position.lat / 1e7
-    home_lon = current_position.lon / 1e7
+    current_lat = current_position.lat / 1e7
+    current_lon = current_position.lon / 1e7
     print("現在位置の取得完了")
 
     # 三角形の頂点を計算
     distance = 0.0001  # 約11メートル
-    wp1_lat = home_lat + distance
-    wp1_lon = home_lon
+    wp1_lat = current_lat + distance
+    wp1_lon = current_lon
 
-    wp2_lat = home_lat
-    wp2_lon = home_lon + distance
+    wp2_lat = current_lat
+    wp2_lon = current_lon + distance
 
-    wp3_lat = home_lat - distance
-    wp3_lon = home_lon
+    wp3_lat = current_lat - distance
+    wp3_lon = current_lon
+
+    # 新しいミッションのリストを作成
+    new_mission = []
 
     # ホームポジションを最初のウェイポイントとして追加
-    add_waypoint(downloaded_mission, home_lat, home_lon, target_altitude, current=1)  # 最初のウェイポイント
+    add_waypoint(new_mission, current_lat, current_lon, target_altitude, current=1)  # 最初のウェイポイント
 
     # 三角形の頂点をウェイポイントとして追加
-    add_waypoint(downloaded_mission, wp1_lat, wp1_lon, target_altitude)
-    add_waypoint(downloaded_mission, wp2_lat, wp2_lon, target_altitude)
-    add_waypoint(downloaded_mission, wp3_lat, wp3_lon, target_altitude)
-    add_waypoint(downloaded_mission, home_lat, home_lon, target_altitude)  # 最後のウェイポイント
+    add_waypoint(new_mission, wp1_lat, wp1_lon, target_altitude)
+    add_waypoint(new_mission, wp2_lat, wp2_lon, target_altitude)
+    add_waypoint(new_mission, wp3_lat, wp3_lon, target_altitude)
+    add_waypoint(new_mission, current_lat, current_lon, target_altitude)  # 最後のウェイポイント
+
+    print(f"ミッションの用意完了: {new_mission}")
 
     # ミッションアップロード
-    upload_mission(master, downloaded_mission)
+    upload_mission(master, new_mission)
     print("ミッションアップロード完了")
-    return downloaded_mission
+    return new_mission
 
 
-# ホームロケーションとの距離を計算する
-def calculate_distance(lat1, lon1, lat2, lon2):
-    R = 6371000  # 地球の半径（メートル）
-    dlat = radians(lat2 - lat1)
-    dlon = radians(lon1 - lon2)
-    a = sin(dlat / 2) * sin(dlat / 2) + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon / 2) * sin(dlon / 2)
-    c = 2 * atan2(sqrt(a), sqrt(1 - a))
-    distance = R * c
-    return distance
+# 自動航行の処理を実行する（三角形ウェイポイント設定 > Autoモード）
+def do_triangle_mission(master, target_altitude):
+  # ミッションの作成とアップロード
+  mission = create_triangle_mission(master, target_altitude)
+
+  # ミッションモードに変更
+  mission_mode = 'AUTO'
+  master.set_mode_apm(master.mode_mapping()[mission_mode])
+  print("AUTOモードに変更しました")
+
+  # ミッション開始を確認
+  while True:
+      master.recv_msg()
+      if master.flightmode == mission_mode:
+          print("ミッションモードに変更完了")
+          break
+
+  # ミッション完了を待機
+  while True:
+      msg = master.recv_match(type=['MISSION_ITEM_REACHED', 'MISSION_CURRENT'], blocking=True)
+      if msg.get_type() == 'MISSION_ITEM_REACHED' and msg.seq == len(mission) - 1:
+          print("ミッション完了")
+          break
+      time.sleep(0.1)
