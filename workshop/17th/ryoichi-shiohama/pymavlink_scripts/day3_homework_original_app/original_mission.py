@@ -1,33 +1,7 @@
 from pymavlink import mavutil
 import time
 from math import radians, sin, cos, sqrt, atan2
-from mission_utils import create_triangle_mission
-
-# 自動航行の処理を実行する（三角形ウェイポイント設定 > Autoモード）
-def do_triangle_mission(master, target_altitude):
-  # ミッションの作成とアップロード
-  mission = create_triangle_mission(master, target_altitude)
-
-  # ミッションモードに変更
-  mission_mode = 'AUTO'
-  master.set_mode_apm(master.mode_mapping()[mission_mode])
-  print("AUTOモードに変更しました")
-
-  # ミッション開始を確認
-  while True:
-      master.recv_msg()
-      if master.flightmode == mission_mode:
-          print("ミッションモードに変更完了")
-          break
-
-  # ミッション完了を待機
-  while True:
-      msg = master.recv_match(type=['MISSION_ITEM_REACHED', 'MISSION_CURRENT'], blocking=True)
-      if msg.get_type() == 'MISSION_ITEM_REACHED' and msg.seq == len(mission) - 1:
-          print("ミッション完了")
-          break
-      time.sleep(0.1)
-
+from mission_utils import do_triangle_mission
 
 # ホームロケーションとの距離を計算する
 def calculate_distance(lat1, lon1, lat2, lon2):

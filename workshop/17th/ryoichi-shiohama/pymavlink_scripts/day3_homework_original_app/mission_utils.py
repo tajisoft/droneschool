@@ -1,4 +1,5 @@
 from pymavlink import mavutil
+import time
 
 def add_waypoint(mission, lat, lon, alt, current=0):
     # 新しいウェイポイントを追加
@@ -34,6 +35,7 @@ def upload_mission(master, mission):
     master.mav.mission_set_current_send(0, master.target_component, 0)
     master.mav.mission_request_list_send(
         master.target_system, master.target_component)
+
 
 def create_triangle_mission(master, target_altitude):
     # 現在位置取得
@@ -72,3 +74,29 @@ def create_triangle_mission(master, target_altitude):
     upload_mission(master, new_mission)
     print("ミッションアップロード完了")
     return new_mission
+
+
+# 自動航行の処理を実行する（三角形ウェイポイント設定 > Autoモード）
+def do_triangle_mission(master, target_altitude):
+  # ミッションの作成とアップロード
+  mission = create_triangle_mission(master, target_altitude)
+
+  # ミッションモードに変更
+  mission_mode = 'AUTO'
+  master.set_mode_apm(master.mode_mapping()[mission_mode])
+  print("AUTOモードに変更しました")
+
+  # ミッション開始を確認
+  while True:
+      master.recv_msg()
+      if master.flightmode == mission_mode:
+          print("ミッションモードに変更完了")
+          break
+
+  # ミッション完了を待機
+  while True:
+      msg = master.recv_match(type=['MISSION_ITEM_REACHED', 'MISSION_CURRENT'], blocking=True)
+      if msg.get_type() == 'MISSION_ITEM_REACHED' and msg.seq == len(mission) - 1:
+          print("ミッション完了")
+          break
+      time.sleep(0.1)
