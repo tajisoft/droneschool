@@ -1,3 +1,4 @@
+# 動作検証コード
 from pymavlink import mavutil
 import time
 # 機体への接続
