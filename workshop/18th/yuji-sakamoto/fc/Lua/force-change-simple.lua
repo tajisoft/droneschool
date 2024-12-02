@@ -1,6 +1,6 @@
 -- RC8スイッチがONの時現在のモードを監視してALT_HOLDの時はALT_HOLD_SIMPLE(100)に変更する
 -- 同様にLOITERの時はLOITER_SUPERSIMPLE(101)に変更する
---
+-- 坂本案１
 
 local MODE_ALT_HOLD = 2
 local MODE_LOITER = 5
