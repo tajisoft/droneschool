@@ -12,6 +12,7 @@
 
 ### pm01_message_dump.py
 gpio(uart)@ラズベリーパイとTELEM2@CubeOrangePlusと接続するお試し
+併せてsignalキャッチ時の処理対応
 
 ### rc.local
 ラズベリーパイにリモート接続できない前提で起動時に自動実行するために処理追加実験

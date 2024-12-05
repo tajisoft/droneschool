@@ -18,10 +18,10 @@ if [ "$_IP" ]; then
 fi
 
 if [ -f /home/pi/GitHub/droneschool/workshop/18th/yuji-sakamoto/pm01_message_dump.py ]; then
-  printf "test python file exist\n"
-  sudo -u pi /usr/bin/python /home/pi/GitHub/droneschool/workshop/18th/yuji-sakamoto/pm01_message_dump.py > /home/pi/test.log &
+  printf "startup python file exist\n"
+  sudo -u pi /usr/bin/python /home/pi/GitHub/droneschool/workshop/18th/yuji-sakamoto/rc.py > /dev/null &
 else
-  printf "test python file not exist\n"
+  printf "startup python file not exist\n"
 fi
 
 exit 0
