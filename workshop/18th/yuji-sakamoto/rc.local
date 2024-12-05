@@ -17,9 +17,10 @@ if [ "$_IP" ]; then
   printf "My IP address is %s\n" "$_IP"
 fi
 
-if [ -f /home/pi/GitHub/droneschool/workshop/18th/yuji-sakamoto/pm01_message_dump.py ]; then
+rc="/home/pi/GitHub/droneschool/workshop/18th/yuji-sakamoto/rc.py"
+if [ -f $rc ]; then
   printf "startup python file exist\n"
-  sudo -u pi /usr/bin/python /home/pi/GitHub/droneschool/workshop/18th/yuji-sakamoto/rc.py > /dev/null &
+  sudo -u pi /usr/bin/python $rc > /dev/null &
 else
   printf "startup python file not exist\n"
 fi
