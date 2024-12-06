@@ -3,6 +3,7 @@ import time
 import signal
 import RPi.GPIO as GPIO
 from pymavlink import mavutil
+from app.flight_experience.square import flight
 
 pinno = 18
 
@@ -55,7 +56,7 @@ def main():
     try:
         while True:
             try:
-              print(master.recv_match().to_dict())
+              flight(master)
             except:
               pass
             if( cnt % 2 ) :
