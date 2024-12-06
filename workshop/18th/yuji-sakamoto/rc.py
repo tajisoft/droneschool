@@ -32,10 +32,12 @@ def setup() -> mavutil.mavfile:
   #     0, 10, 1)
 
   # GLOBAL_POSITION_INT(33)メッセージを10Hzで受信
+  # HEARTBEAT (0) 
   master.mav.command_long_send(
     master.target_system, master.target_component,
     mavutil.mavlink.MAV_CMD_SET_MESSAGE_INTERVAL,
     0, 33, 100000, 0, 0, 0, 0, 0)
+#    0, 0, 100000, 0, 0, 0, 0, 0)
 
   return master
 
@@ -51,6 +53,7 @@ def sig_handler(signum, frame) -> None:
 
 def main():
     cnt = 0
+    lcnt = 0
     master: mavutil.mavfile = setup()
     signal.signal(signal.SIGTERM, sig_handler)
     try:
@@ -59,14 +62,16 @@ def main():
               flight(master)
             except:
               pass
-            if( cnt % 2 ) :
+            if( lcnt % 2 ) :
                 # LED点灯
                 GPIO.output(pinno, 1)
             else :
                 # LED消灯
                 GPIO.output(pinno, 0)
-            time.sleep(1)
             cnt = cnt + 1
+            if( cnt % 5 ) == 0 :
+                lcnt = lcnt + 1
+            time.sleep(0.2)
 
     finally:
         signal.signal(signal.SIGTERM, signal. SIG_IGN)
