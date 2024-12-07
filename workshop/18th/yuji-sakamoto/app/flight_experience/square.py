@@ -8,6 +8,7 @@ from pymavlink import mavutil
 
 flcnt = 0
 flstate = 0
+lastmode = 'none'
 
 def sendmsg(master: mavutil.mavfile,msg:int):
   master.mav.command_long_send(
@@ -17,14 +18,14 @@ def sendmsg(master: mavutil.mavfile,msg:int):
 
 def setup() -> mavutil.mavfile:
   # 機体への接続
-  #master: mavutil.mavfile = mavutil.mavlink_connection(
-  #    "127.0.0.1:14551", source_system=1, source_component=90)
+  master: mavutil.mavfile = mavutil.mavlink_connection(
+      "127.0.0.1:14551", source_system=1, source_component=90)
   #
   # ラズベリーパイのGPIOポートのRX/TXとCubeOrangePlusのTELEM2をUART接続
   # 配線省略のためにGPSポートのTELEM3を使いたかったがなぜか接続できなかった(追及していない)。
   # TELEM1はイームズのテレメトリーユニットと接続している
-  master: mavutil.mavfile = mavutil.mavlink_connection(
-    "/dev/serial0", baud=115200, source_system=1, source_component=90)
+  # master: mavutil.mavfile = mavutil.mavlink_connection(
+  #  "/dev/serial0", baud=115200, source_system=1, source_component=90)
 
   master.wait_heartbeat()
 
@@ -33,9 +34,13 @@ def setup() -> mavutil.mavfile:
 def flight(master: mavutil.mavfile = setup()):
     global flcnt
     global flstate
+    global lastmode
     try:
       master.recv_match(type='SYS_STATUS',blocking=True)
-      # print(master.flightmode)
+      nowmode = master.flightmode
+      if lastmode != nowmode :
+        print(nowmode)
+        lastmode = nowmode
     except:
       pass
     if master.flightmode != 'GUIDED' :
