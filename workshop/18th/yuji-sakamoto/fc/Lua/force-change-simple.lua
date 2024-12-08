@@ -1,6 +1,16 @@
 -- RC8スイッチがONの時現在のモードを監視してALT_HOLDの時はALT_HOLD_SIMPLE(100)に変更する
 -- 同様にLOITERの時はLOITER_SUPERSIMPLE(101)に変更する
 -- 坂本案１
+local MAV_SEVERITY = {
+    EMERGENCY = 0,
+    ALERT = 1,
+    CRITICAL = 2,
+    ERROR = 3,
+    WARNING = 4,
+    NOTICE = 5,
+    INFO = 6,
+    DEBUG = 7
+}
 
 local MODE_ALT_HOLD = 2
 local MODE_LOITER = 5
@@ -21,18 +31,22 @@ function update()
         prior_mode = mode
         prior_mode_name = "ALT_HOLD"
         vehicle:set_mode(MODE_ALT_HOLD_SIMPLE)
-      else if mode == MODE_LOITER then
-        -- LOITERならLOITER_SUPERSIMPLEにモード変更する
-        gcs:send_text(MAV_SEVERITY.INFO, "Lua : LOITER -> LOITER_SUPERSIMPLE")
-        prior_mode = mode
-        prior_mode_name = "LOITER"
-        vehicle:set_mode(MODE_LOITER_SUPERSIMPLE)
+      else
+        if mode == MODE_LOITER then
+          -- LOITERならLOITER_SUPERSIMPLEにモード変更する
+          gcs:send_text(MAV_SEVERITY.INFO, "Lua : LOITER -> LOITER_SUPERSIMPLE")
+          prior_mode = mode
+          prior_mode_name = "LOITER"
+          vehicle:set_mode(MODE_LOITER_SUPERSIMPLE)
+        end
       end
-    else if prior_mode > 0 then
-      -- RC 8 がOFFの時切り替え済みの場合は切り替え前のモードに戻す
-      gcs:send_text(MAV_SEVERITY.INFO, "Lua : RESET to %s",prior_mode_name)
-      vehicle:set_mode(prior_mode)
-      prior_mode = -1
+    else
+      if prior_mode > 0 then
+        -- RC 8 がOFFの時切り替え済みの場合は切り替え前のモードに戻す
+        gcs:send_text(MAV_SEVERITY.INFO, "Lua : RESET to " .. prior_mode_name)
+        vehicle:set_mode(prior_mode)
+        prior_mode = -1
+      end
     end
 
   return update, 1000
