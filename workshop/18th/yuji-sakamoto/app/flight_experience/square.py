@@ -51,97 +51,97 @@ def flight(master: mavutil.mavfile):
       # 飛行制御処理開始
       flstate = flstate + 1
       print('FLIGHT START')
-    else if flstate == 2 :
+    elif flstate == 2 :
       # ARM
       # ARM確認OK
       flstate = flstate + 1
       print('ARMED')
-    else if flstate == 3 :
+    elif flstate == 3 :
       # 離陸（高度5m）
       # 離陸OK
       flstate = flstate + 1
       staytime = 25 # 5秒（0.2x25）
       print('TAKEOFF 5m')
-    else if flstate == 4 :
+    elif flstate == 4 :
       # 5秒ホバリング
       if staytime > 0 :
         staytime = staytime - 1
       else :
         flstate = flstate + 1
-    else if flstate == 5 :
+    elif flstate == 5 :
       # 180度右旋回
       flstate = flstate + 1
-    else if flstate == 6 :
+    elif flstate == 6 :
       # 5m直進
       flstate = flstate + 1
-    else if flstate == 7 :
+    elif flstate == 7 :
       # A地点到達確認
       flstate = flstate + 1
-    else if flstate == 8 :
+    elif flstate == 8 :
       # 左90度旋回
       flstate = flstate + 1
-    else if flstate == 9 :
+    elif flstate == 9 :
       # 6.5m直進
       flstate = flstate + 1
-    else if flstate == 10 :
+    elif flstate == 10 :
       # B地点到達確認
       flstate = flstate + 1
-    else if flstate == 11 :
+    elif flstate == 11 :
       # 左90度旋回
       flstate = flstate + 1
-    else if flstate == 12 :
+    elif flstate == 12 :
       # 10mに高度を上げながら5m直進
       flstate = flstate + 1
-    else if flstate == 13 :
+    elif flstate == 13 :
       # C地点到達確認
       flstate = flstate + 1
-    else if flstate == 14 :
+    elif flstate == 14 :
       # 左90度旋回
       flstate = flstate + 1
-    else if flstate == 15 :
+    elif flstate == 15 :
       # 13m直進
       flstate = flstate + 1
-    else if flstate == 16 :
+    elif flstate == 16 :
       # D地点到達確認
       flstate = flstate + 1
-    else if flstate == 17 :
+    elif flstate == 17 :
       # 左90度旋回
       flstate = flstate + 1
-    else if flstate == 18 :
+    elif flstate == 18 :
       # 5mに高度を下げながら5m直進
       flstate = flstate + 1
-    else if flstate == 19 :
+    elif flstate == 19 :
       # E地点到達確認
       flstate = flstate + 1
-    else if flstate == 20 :
+    elif flstate == 20 :
       # 左90度旋回
       flstate = flstate + 1
-    else if flstate == 21 :
+    elif flstate == 21 :
       # 6.5m直進
       flstate = flstate + 1
-    else if flstate == 22 :
+    elif flstate == 22 :
       # A地点到達確認
       flstate = flstate + 1
-    else if flstate == 23 :
+    elif flstate == 23 :
       # 左90度旋回
       flstate = flstate + 1
-    else if flstate == 24 :
+    elif flstate == 24 :
       # 5m直進
       flstate = flstate + 1
-    else if flstate == 25 :
+    elif flstate == 25 :
       # 離陸地点到達確認
       flstate = flstate + 1
       staytime = 25 # 5秒（0.2x25）
-    else if flstate == 26 :
+    elif flstate == 26 :
       # 5秒ホバリング
       if staytime > 0 :
         staytime = staytime - 1
       else :
         flstate = flstate + 1
-    else if flstate == 27 :
+    elif flstate == 27 :
       # 着陸
       flstate = flstate + 1
-    else if flstate == 28 :
+    elif flstate == 28 :
       # DISARM
       flstate = flstate + 1
     else :
