@@ -4,8 +4,8 @@ import time
 # 接続
 # SITL接続に変更
 master: mavutil.mavfile = mavutil.mavlink_connection(
-        "tcp:192.168.1.12:5762",  source_system=1, source_component=90)
-#    "127.0.0.1:14551",  source_system=1, source_component=90)
+#        "tcp:192.168.1.12:5762",  source_system=1, source_component=90)
+    "127.0.0.1:14551",  source_system=1, source_component=90)
 master.wait_heartbeat()
 print("接続完了")
 
