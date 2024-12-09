@@ -19,25 +19,32 @@ local MODE_LOITER_SUPERSIMPLE = 101
 local prior_mode = -1
 local prior_mode_name = "NONE"
 
+-- FC側のコードにALT_HOLD_SIMPLE/LOITER_SUPERSIMPLEが存在している前提で最初は実行する
+local extend_mode = true
+
 -- the main update function
 function update()
     pwm8 = rc:get_pwm(8)
-    if pwm8 and pwm8 > 1500 then
+    if extend_mode and pwm8 and pwm8 > 1500 then
       -- RC 8 がONの時のみ有効化
       local mode = vehicle:get_mode()                   -- get current mode
       if mode == MODE_ALT_HOLD then
         -- ALT_HOLDならALT_HOLD_SIMPLEにモード変更する
-        gcs:send_text(MAV_SEVERITY.INFO, "Lua : ALT_HOLD -> ALT_HOLD_SIMPLE")
-        prior_mode = mode
-        prior_mode_name = "ALT_HOLD"
-        vehicle:set_mode(MODE_ALT_HOLD_SIMPLE)
+        extend_mode = vehicle:set_mode(MODE_ALT_HOLD_SIMPLE)
+        if extend_mode then
+          gcs:send_text(MAV_SEVERITY.INFO, "Lua : ALT_HOLD -> ALT_HOLD_SIMPLE")
+          prior_mode = mode
+          prior_mode_name = "ALT_HOLD"
+        end
       else
         if mode == MODE_LOITER then
           -- LOITERならLOITER_SUPERSIMPLEにモード変更する
-          gcs:send_text(MAV_SEVERITY.INFO, "Lua : LOITER -> LOITER_SUPERSIMPLE")
-          prior_mode = mode
-          prior_mode_name = "LOITER"
-          vehicle:set_mode(MODE_LOITER_SUPERSIMPLE)
+          extend_mode = vehicle:set_mode(MODE_LOITER_SUPERSIMPLE)
+          if extend_mode then
+            gcs:send_text(MAV_SEVERITY.INFO, "Lua : LOITER -> LOITER_SUPERSIMPLE")
+            prior_mode = mode
+            prior_mode_name = "LOITER"
+          end
         end
       end
     else
