@@ -16,15 +16,17 @@ staytime = 0
 PAI = 3.14159265
 TURN180 = PAI
 TURN2LEFT = -( PAI / 2 )
+tick = 0.2
 
-def intervalReq(master: mavutil.mavfile,msg:int):
+def intervalReq(master: mavutil.mavfile, msg):
   master.mav.command_long_send(
     master.target_system, master.target_component,
     mavutil.mavlink.MAV_CMD_SET_MESSAGE_INTERVAL,
     0, msg, 100000, 0, 0, 0, 0, 0)
 
 def delaySec2Cnt(sec):
-  return sec / 0.2
+  global tick
+  return sec / tick
 
 def goTurn(master: mavutil.mavfile,rad) :
     # message SET_POSITION_TARGET_LOCAL_NED 0 0 0 9 2503 0 0 0 0 0 0 0 0 0 3.14159 0
@@ -58,12 +60,14 @@ def setup() -> mavutil.mavfile:
 
   return master
 
-def flight(master: mavutil.mavfile):
+def flight(master: mavutil.mavfile, delay = 0.2):
     global flcnt
     global flstate
     global lastmode
     global target_alt
     global staytime
+    global tick
+    tick = delay
     try:
       master.recv_match(type='SYS_STATUS',blocking=False)
       nowmode = master.flightmode
@@ -78,7 +82,7 @@ def flight(master: mavutil.mavfile):
       if flstate == 0 :
         flstate = 1
         print('ACTIVATE GUIDED MODE FLIGHT')
-    else :
+    elif master.flightmode != 'LAND' :
       # 状態初期化
       flstate = 0
     if flstate == 1 :
@@ -92,6 +96,7 @@ def flight(master: mavutil.mavfile):
       # ARM確認OK
       flstate = flstate + 1
       print('ARMED')
+      intervalReq(master,33)  # GLOBAL_POSITION_INTインターバル要求
     elif flstate == 3 :
       # 離陸（高度5m）
       target_alt = 5
@@ -294,6 +299,7 @@ def flight(master: mavutil.mavfile):
         staytime = staytime - 1
       else :
         flstate = flstate + 1
+        print('ホバリング完了')
     elif flstate == 35 :
       # 着陸
       master.mav.command_long_send(
@@ -301,19 +307,23 @@ def flight(master: mavutil.mavfile):
           mavutil.mavlink.MAV_CMD_DO_SET_MODE, 0,
           mavutil.mavlink.MAV_MODE_FLAG_CUSTOM_MODE_ENABLED, master.mode_mapping()['LAND'], 0, 0, 0, 0, 0)
       flstate = flstate + 1
+      staytime = delaySec2Cnt(10)
     elif flstate == 36 :
-      # DISARM
-      flstate = flstate + 1
+      # print('着陸確認',staytime)
+      if staytime > 0:
+        staytime = staytime - 1
+      else :
+        flstate = flstate + 1
+        print('着陸完了')
 
     flcnt = flcnt + 1
 
 if __name__ == "__main__":
     master: mavutil.mavfile = setup()
     print('接続')
-    #intervalReq(master,33)
     while True:
         #print('before')
-        flight(master)
+        flight(master,0.2)
         #print('after')
         time.sleep(0.2)
 
