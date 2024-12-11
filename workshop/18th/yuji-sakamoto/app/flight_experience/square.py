@@ -28,6 +28,10 @@ lastYaw = 0
 lastAlt = 0
 stableCheck = 5
 
+# 状態遷移制御する場合の特別な状態番号のみ名前を付ける
+# ※enumを使うと行数を浪費するので省略
+STATE_LAND = 35
+
 tick = 0.2
 
 # 現在飛行中かどうかを判定する
@@ -62,7 +66,11 @@ def isStable(master: mavutil.mavfile) :
     stableCnt = stableCheck
     return False
   # x/y/z方向の速度が0になり機首角度が安定して高度も安定したかどうかを判定する
-  elif recv.vx > -10 and recv.vx < 10 and recv.vy > -10 and recv.vy < 10 and recv.vz >-10 and recv.vz < 10 and diffAlt > -10 and diffAlt < 10 and diffYaw > -10 and diffYaw < 10 :
+  elif ( recv.vx > -10 and recv.vx < 10 and 
+         recv.vy > -10 and recv.vy < 10 and 
+         recv.vz > -10 and recv.vz < 10 and 
+         diffAlt > -10 and diffAlt < 10 and 
+         diffYaw > -10 and diffYaw < 10 ) :
     stableCnt = stableCnt - 1
     if stableCnt <= 0 :
       return True
@@ -152,7 +160,7 @@ def flight(master: mavutil.mavfile, delay = 0.2):
       # ARM
       if isFly(master) :
         # GUIDEDに切り替えたときに既に飛行していたら一旦着陸させる
-        flstate = 35
+        flstate = STATE_LAND
         print('FLIGHT CONTROL CANCEL')
       elif isPreArmOk(master) :
         master.arducopter_arm()
@@ -163,7 +171,7 @@ def flight(master: mavutil.mavfile, delay = 0.2):
           print('ARMED')
         else :
           print('ARM FAILED')
-          flstate = 35 # 一旦LANDモードに遷移させる
+          flstate = STATE_LAND # 一旦LANDモードに遷移させる
         #master.motors_armed_wait()
     elif flstate == 3 :
       # 離陸（高度5m）
@@ -337,7 +345,7 @@ def flight(master: mavutil.mavfile, delay = 0.2):
       else :
         flstate = flstate + 1
         print('ホバリング完了')
-    elif flstate == 35 :
+    elif flstate == STATE_LAND :
       # 着陸
       master.mav.command_long_send(
           master.target_system, master.target_component,
