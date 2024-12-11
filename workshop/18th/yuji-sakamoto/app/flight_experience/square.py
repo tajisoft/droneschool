@@ -26,7 +26,7 @@ INT_DISABLE = -1
 stableCnt = 0
 lastYaw = 0
 lastAlt = 0
-stableCheck = 20
+stableCheck = 5
 
 tick = 0.2
 
@@ -110,7 +110,9 @@ def flight(master: mavutil.mavfile, delay = 0.2):
     global tick
     tick = delay
     try:
-      master.recv_match(type='SYS_STATUS',blocking=False)
+      #print('recv_match()',flcnt,flstate)
+      master.recv_match(type='HEARTBEAT', blocking=True)
+      #master.recv_match(type='SYS_STATUS',blocking=False)
       nowmode = master.flightmode
       if lastmode != nowmode :
         print(nowmode)
