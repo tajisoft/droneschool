@@ -9,7 +9,7 @@ pinno = 18
 
 def setup() -> mavutil.mavfile:
   # 機体への接続
-  # ラズベリーパイとの接続の場合でもmavlink-routerd経由で接続するので直接てきなUART接続不要
+  # ラズベリーパイとの接続の場合でもmavlink-routerd経由で接続するので直接的なUART接続不要
   master: mavutil.mavfile = mavutil.mavlink_connection(
       "127.0.0.1:14551", source_system=1, source_component=90)
   #
