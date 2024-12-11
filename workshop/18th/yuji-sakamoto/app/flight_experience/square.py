@@ -30,6 +30,21 @@ stableCheck = 5
 
 tick = 0.2
 
+# 現在飛行中かどうかを判定する
+# 本当はARMEDとかPREARM可能かなどもチェックしたいが・・・
+def isFly(master: mavutil.mavfile) :
+  recv = master.recv_match(type='GLOBAL_POSITION_INT', blocking=True)
+  print("recv.relative_alt :",recv.relative_alt)
+  if recv.relative_alt > 100 :
+    # recv = master.recv_match(type='RC_CHANNELS_SCALED', blocking=True)
+    # print(recv.chan1_scaled,recv.chan2_scaled,recv.chan3_scaled,recv.chan4_scaled)
+    return True
+  else :
+    return False
+
+def isPreArmOk(master: mavutil.mavfile) :
+  return True
+
 def isStable(master: mavutil.mavfile) :
   global stableCnt
   global lastYaw
@@ -131,15 +146,25 @@ def flight(master: mavutil.mavfile, delay = 0.2):
     if flstate == 1 :
       # 飛行制御処理開始
       flstate = flstate + 1
-      print('FLIGHT START')
+      print('FLIGHT CONTROL START')
+      intervalReq(master)  # GLOBAL_POSITION_INTインターバル要求
     elif flstate == 2 :
       # ARM
-      master.arducopter_arm()
-      master.motors_armed_wait()
-      # ARM確認OK
-      flstate = flstate + 1
-      print('ARMED')
-      intervalReq(master)  # GLOBAL_POSITION_INTインターバル要求
+      if isFly(master) :
+        # GUIDEDに切り替えたときに既に飛行していたら一旦着陸させる
+        flstate = 35
+        print('FLIGHT CONTROL CANCEL')
+      elif isPreArmOk(master) :
+        master.arducopter_arm()
+        ack = master.recv_match(type='COMMAND_ACK', blocking=True, timeout=10)
+        if ack and ack.command == mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM and ack.result == 0:
+          # ARM確認OK
+          flstate = flstate + 1
+          print('ARMED')
+        else :
+          print('ARM FAILED')
+          flstate = 35 # 一旦LANDモードに遷移させる
+        #master.motors_armed_wait()
     elif flstate == 3 :
       # 離陸（高度5m）
       target_alt = 5
@@ -325,6 +350,8 @@ def flight(master: mavutil.mavfile, delay = 0.2):
       if isStable(master) :
         flstate = flstate + 1
         print('着陸完了')
+        master.arducopter_disarm()
+        master.motors_disarmed_wait()
         intervalReq(master, INT_DISABLE)  # GLOBAL_POSITION_INTインターバル停止要求
 
     flcnt = flcnt + 1
