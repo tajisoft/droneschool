@@ -9,6 +9,9 @@
 // loiter_init - initialise loiter super simple controller
 bool ModeLoiterSuperSimple::init(bool ignore_checks)
 {
+    // set delay cnt change SUPERSIMPLE
+    delay_change_mode = 100;
+
     if (!copter.failsafe.radio) {
         float target_roll, target_pitch;
         // apply SIMPLE mode transform to pilot inputs
@@ -92,6 +95,16 @@ void ModeLoiterSuperSimple::run()
 
     // process pilot inputs unless we are in radio failsafe
     if (!copter.failsafe.radio) {
+        // force change SUPERSIMPLE
+        if( delay_change_mode > 0) {
+            delay_change_mode--;
+        }
+        else if( 0 == delay_change_mode ){
+            copter.set_simple_mode(Copter::SimpleMode::SUPERSIMPLE);
+            GCS_SEND_TEXT(MAV_SEVERITY_CRITICAL, "set SUPERSIMPLE");
+            delay_change_mode--;
+        }
+
         // apply SIMPLE mode transform to pilot inputs
         update_simple_mode();
 
@@ -215,4 +228,10 @@ int32_t ModeLoiterSuperSimple::wp_bearing() const
     return loiter_nav->get_bearing_to_target();
 }
 
+void ModeLoiterSuperSimple::exit()
+{
+    // force reset super simple mode to NONE
+    copter.set_simple_mode(Copter::SimpleMode::NONE);
+    GCS_SEND_TEXT(MAV_SEVERITY_CRITICAL, "ModeLoiterSuperSimple::exit()");
+}
 #endif
