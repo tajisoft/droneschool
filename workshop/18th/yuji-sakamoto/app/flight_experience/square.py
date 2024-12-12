@@ -31,6 +31,7 @@ stableCheck = 5
 # 状態遷移制御する場合の特別な状態番号のみ名前を付ける
 # ※enumを使うと行数を浪費するので省略
 STATE_LAND = 35
+STATE_INVALID = 37
 
 tick = 0.2
 
@@ -159,8 +160,8 @@ def flight(master: mavutil.mavfile, delay = 0.2):
     elif flstate == 2 :
       # ARM
       if isFly(master) :
-        # GUIDEDに切り替えたときに既に飛行していたら一旦着陸させる
-        flstate = STATE_LAND
+        # GUIDEDに切り替えたときに既に飛行していたら無効にする
+        flstate = STATE_INVALID
         print('FLIGHT CONTROL CANCEL')
       elif isPreArmOk(master) :
         master.arducopter_arm()
@@ -171,7 +172,7 @@ def flight(master: mavutil.mavfile, delay = 0.2):
           print('ARMED')
         else :
           print('ARM FAILED')
-          flstate = STATE_LAND # 一旦LANDモードに遷移させる
+          flstate = STATE_INVALID #無効にする 
         #master.motors_armed_wait()
     elif flstate == 3 :
       # 離陸（高度5m）
