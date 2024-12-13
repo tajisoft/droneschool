@@ -4,8 +4,9 @@ import time
 # 接続
 # SITL接続に変更
 master: mavutil.mavfile = mavutil.mavlink_connection(
+        "tcp:localhost:5762",  source_system=1, source_component=90)
 #        "tcp:192.168.1.12:5762",  source_system=1, source_component=90)
-    "127.0.0.1:14551",  source_system=1, source_component=90)
+#    "127.0.0.1:14551",  source_system=1, source_component=90)
 master.wait_heartbeat()
 print("接続完了")
 
@@ -35,12 +36,10 @@ master.mav.command_long_send(
     0, 0, 0, 0, 0, 0, 0, target_altitude)
 
 # メッセージレート変更: GLOBAL_POSITION_INT(33)を10Hzで受信
-# 後述のrecv_match()で都度取得できているのでこれは不要な気がするのでコメントアウト
-# ==>SITLで動作確認OK
-#master.mav.command_long_send(
-#    master.target_system, master.target_component,
-#    mavutil.mavlink.MAV_CMD_SET_MESSAGE_INTERVAL,
-#    0, 33, 100000, 0, 0, 0, 0, 0)
+master.mav.command_long_send(
+    master.target_system, master.target_component,
+    mavutil.mavlink.MAV_CMD_SET_MESSAGE_INTERVAL,
+    0, 33, 100000, 0, 0, 0, 0, 0)
 
 # GLOBAL_POSITION_INT メッセージを要求
 # master.mav.global_position_int_send(0, 0, 0, 0, 0, 0, 0, 0, 0)
@@ -73,6 +72,8 @@ time.sleep(5)
 print("着陸指示")
 mode = 'LAND'
 master.set_mode_apm(master.mode_mapping()[mode])
+time.sleep(10)
 
 # 切断
+print("切断")
 master.close()
