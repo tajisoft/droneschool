@@ -26,7 +26,7 @@ INT_DISABLE = -1
 stableCnt = 0
 lastYaw = 0
 lastAlt = 0
-stableCheck = 5
+stableCheck = 2
 
 # 状態遷移制御する場合の特別な状態番号のみ名前を付ける
 # ※enumを使うと行数を浪費するので省略
@@ -40,7 +40,7 @@ tick = 0.2
 def isFly(master: mavutil.mavfile) :
   recv = master.recv_match(type='GLOBAL_POSITION_INT', blocking=True)
   print("recv.relative_alt :",recv.relative_alt)
-  if recv.relative_alt > 100 :
+  if recv.relative_alt > 1000 :
     # recv = master.recv_match(type='RC_CHANNELS_SCALED', blocking=True)
     # print(recv.chan1_scaled,recv.chan2_scaled,recv.chan3_scaled,recv.chan4_scaled)
     return True
@@ -67,11 +67,11 @@ def isStable(master: mavutil.mavfile) :
     stableCnt = stableCheck
     return False
   # x/y/z方向の速度が0になり機首角度が安定して高度も安定したかどうかを判定する
-  elif ( recv.vx > -10 and recv.vx < 10 and 
-         recv.vy > -10 and recv.vy < 10 and 
-         recv.vz > -10 and recv.vz < 10 and 
-         diffAlt > -10 and diffAlt < 10 and 
-         diffYaw > -10 and diffYaw < 10 ) :
+  elif ( recv.vx > -30 and recv.vx < 30 and 
+         recv.vy > -30 and recv.vy < 30 and 
+         recv.vz > -30 and recv.vz < 30 and 
+         diffAlt > -30 and diffAlt < 30 and 
+         diffYaw > -20 and diffYaw < 20 ) :
     stableCnt = stableCnt - 1
     if stableCnt <= 0 :
       return True
