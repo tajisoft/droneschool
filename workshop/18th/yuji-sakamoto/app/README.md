@@ -1,7 +1,16 @@
 # ドローンエンジニア養成塾１８期坂本作業用
 
 ## flight_experience
-コース２（アプリケーション）用フライトアプリ課題格納
+コース２（アプリケーション）フライトエクスペリエンス用スクリプト格納
+
+## /etc/rc.local -> rc.pyから呼び出されるスクリプト
+### square.py
+1. 一等無人航空機試験の「高度変化を伴うスクエア飛行」のルートを模擬して飛行させる
+2. WayPintを使ったAUTO飛行ではなくGUIDEDで制御する
+3. flight()は0.2秒周期で呼び出される前提で状態遷移させて制御する※0.2秒の根拠は実験の結果モード変化検出できる最長時間のため
+4. 参考サイト：https://mavlink.io/en/mavgen_python/howto_requestmessages.html
+5. 参考サイト：https://mavlink.io/en/messages/common.html
+6. 参考サイト：https://ardupilot.org/dev/docs/copter-commands-in-guided-mode.html
 
 ## syakyo
 コース２（アプリケーション）用写経格納

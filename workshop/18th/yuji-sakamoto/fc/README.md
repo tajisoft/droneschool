@@ -1,4 +1,18 @@
 # ドローンエンジニア養成塾１８期フライトコードグループワーク
+## フォルダ説明
+### ArduCopter：フライトコード修正対応C++プログラム格納(ardupilot/ArduCopterフォルダに格納してビルド)
+1. APM_Config.h：MODE_MYFIRST_ENABLED設定追加、MODE_ALT_HOLD_SIMPLE_ENABLED設定追加、MODE_LOITER_SUPER_SIMPLE_ENABLED設定追加
+2. Copter.h：ModeMyfirst/ModeAltHoldSimple/ModeLoiterSuperSimpleモード追加
+3. mode.cpp：Mode *Copter::mode_from_mode_num()に追加モードポインタ返却追加
+4. mode.h：enum cless Numberに追加モード値追加：99/100/101、ModeAltHoldSimple、ModeLoiterSuperSimple、ModeMyfirstクラス追加
+5. Parameters.cpp：doxygen用FLTMODE1値説明に99,100,101を追加
+6. mode_althold_simple.cpp：mode_althold.cppをベースに追加モード対応：init()/run()処理修正、exit()処理追加
+7. mode_loiter_super_simple.cpp：mode_loiter.cppをベースに追加モード対応：init()/run()処理修正、exit()処理追加
+8. mode_myfirst.cpp：ワークショップ時に追加したモード処理
+
+### Lua：追加モードを制御するスクリプト格納
+1. force-change-simple.lua : ALT_HOLD_SIMPLE/LOITER_SUPERSIMPLEモード切り替えスクリプト
+
 ## Team1（SIMPLE IS BEST）テーマ案概要（坂本案説明資料）
 
 以下２案提案します。（グループメンバー向け）
@@ -77,7 +91,7 @@ SITL起動してRC5の値変更（STBILIZE/ALT_HOLD/LOITER）でモード切り�
 RC5とRC8の組み合わせで5通りの切り替え（5パターン）で仕様通りのモード切り替え動作を確認します。
 
 
-## 案２：ノーズインサークルモード（こちらは課題としては未提出）
+## 案２：ノーズインサークルモード（こちらは課題としては未対応）
 ### 背景
 ノーズインサークルとは、空撮時、被写体を中心に、その周りを円を描くように旋回させる方法です。
 モードで切り替えられれば便利です。
