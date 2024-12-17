@@ -6,7 +6,7 @@ import threading
 
 # const
 HEIGHT = 10
-conn = "127.0.0.1:14550"
+conn = "127.0.0.1:14551"
 
 # trees xy
 trees = [
