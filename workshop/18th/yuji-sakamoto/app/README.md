@@ -8,10 +8,13 @@
 1. 一等無人航空機試験の「高度変化を伴うスクエア飛行」のルートを模擬して飛行させる
 2. WayPintを使ったAUTO飛行ではなくGUIDEDで制御する
 3. flight()は0.2秒周期で呼び出される前提で状態遷移させて制御する※0.2秒の根拠は実験の結果モード変化検出できる最長時間のため
-4. 参考サイト：https://mavlink.io/en/mavgen_python/howto_requestmessages.html
-5. 参考サイト：https://mavlink.io/en/messages/common.html
-6. 参考サイト：https://ardupilot.org/dev/docs/copter-commands-in-guided-mode.html
-7. 実機テスト動画：https://www.instagram.com/p/DDq2LVBSSes/
+4. 離陸して目標高度に達した時の判定、旋回完了判定、直進完了判定は共通関数isStable()で実施
+5. isStable()はGLOBAL_POSITION_INTメッセージのvx/vy/vzによる速度が0付近になったこととrelative_altの変化がなくなったこと、および、hdgによるヨーの変化がなくなったことによる判定を行っている
+6. isStable()による「安定判定」を厳しくするとなかなか安定判定とならないため実機による実験で緩めの設定に変更している
+7. 参考サイト：https://mavlink.io/en/mavgen_python/howto_requestmessages.html
+8. 参考サイト：https://mavlink.io/en/messages/common.html
+9. 参考サイト：https://ardupilot.org/dev/docs/copter-commands-in-guided-mode.html
+10. 実機テスト動画：https://www.instagram.com/p/DDq2LVBSSes/
 
 ## syakyo
 コース２（アプリケーション）用写経格納
