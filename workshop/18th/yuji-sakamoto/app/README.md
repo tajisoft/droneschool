@@ -11,6 +11,7 @@
 4. 参考サイト：https://mavlink.io/en/mavgen_python/howto_requestmessages.html
 5. 参考サイト：https://mavlink.io/en/messages/common.html
 6. 参考サイト：https://ardupilot.org/dev/docs/copter-commands-in-guided-mode.html
+7. 実機テスト動画：https://www.instagram.com/p/DDq2LVBSSes/
 
 ## syakyo
 コース２（アプリケーション）用写経格納
