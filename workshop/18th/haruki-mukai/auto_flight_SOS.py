@@ -9,6 +9,8 @@ size = 1000
 
 address = 'udp:127.0.0.1:14550'
 
+is_Sim = False
+
 # Initialize
 connection = mavutil.mavlink_connection(address)
 # Wait for the first heartbeat to set the system and component ID of remote system for the link
@@ -27,44 +29,46 @@ connection.mav.command_long_send(
     0, 0, 0, 0, 0  # param3 - param7: 他のパラメータ
 )
 
-# arm command
-connection.mav.command_long_send(
-    connection.target_system,  # target_system
-    connection.target_component,  # target_component
-    mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM,  # command
-    1,  # confirmation
-    1,  # param1 (1 to arm, 0 to disarm)
-    0,  # param2 (all other params are ignored)
-    0,  # param3
-    0,  # param4
-    0,  # param5
-    0,  # param6
-    0   # param7
-)
+if not is_Sim:
 
-# takeoff 10m
-connection.mav.command_long_send(
-        connection.target_system,  # Target system ID
-        connection.target_component,  # Target component ID
-        mavutil.mavlink.MAV_CMD_NAV_TAKEOFF,  # ID of command to send
-        0,  # Confirmation
-        0,  # param1: Message ID to be streamed
-        0, # param2: Interval in microseconds
-        0,       # param3 (unused)
-        0,       # param4 (unused)
-        0,       # param5 (unused)
-        0,       # param5 (unused)
-        10        # param6 (unused)
-        )
+    # arm command
+    connection.mav.command_long_send(
+        connection.target_system,  # target_system
+        connection.target_component,  # target_component
+        mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM,  # command
+        1,  # confirmation
+        1,  # param1 (1 to arm, 0 to disarm)
+        0,  # param2 (all other params are ignored)
+        0,  # param3
+        0,  # param4
+        0,  # param5
+        0,  # param6
+        0   # param7
+    )
 
-# wait 10m altitude
-while True:
-    msg = connection.recv_match(type=['GLOBAL_POSITION_INT'], blocking=True)
-    if msg.get_type() == 'GLOBAL_POSITION_INT':
-        print(msg)
-        if msg.relative_alt / 1000 > 10:
-            print("Reached 10 meters")
-            break
+    # takeoff 10m
+    connection.mav.command_long_send(
+            connection.target_system,  # Target system ID
+            connection.target_component,  # Target component ID
+            mavutil.mavlink.MAV_CMD_NAV_TAKEOFF,  # ID of command to send
+            0,  # Confirmation
+            0,  # param1: Message ID to be streamed
+            0, # param2: Interval in microseconds
+            0,       # param3 (unused)
+            0,       # param4 (unused)
+            0,       # param5 (unused)
+            0,       # param5 (unused)
+            10        # param6 (unused)
+            )
+
+    # wait 10m altitude
+    while True:
+        msg = connection.recv_match(type=['GLOBAL_POSITION_INT'], blocking=True)
+        if msg.get_type() == 'GLOBAL_POSITION_INT':
+            print(msg)
+            if msg.relative_alt / 1000 > 10:
+                print("Reached 10 meters")
+                break
 
 
 def download_mission(master):
@@ -128,29 +132,27 @@ data = download_mission(connection)
 response = connection.recv_match(type='GPS_RAW_INT', blocking=True)
 
 # ウェイポイントの作成
-# S
-add_waypoint(connection,data, response.lat, response.lon, 30)
-add_waypoint(connection,data, response.lat, response.lon + (1 * size), 30)
-add_waypoint(connection,data, response.lat, response.lon, 30)
-add_waypoint(connection,data, response.lat - (1 * size), response.lon, 20)
-add_waypoint(connection,data, response.lat - (1 * size), response.lon + (1 * size), 20)
-add_waypoint(connection,data, response.lat - (2 * size), response.lon + (1 * size), 10)
-add_waypoint(connection,data, response.lat - (2 * size), response.lon, 10)
+def addS(connection,data,response,size,textPosition):
+    # S
+    add_waypoint(connection,data, response.lat, response.lon + ((textPosition + 0) * size), 30)
+    add_waypoint(connection,data, response.lat, response.lon + ((textPosition + 1) * size), 30)
+    add_waypoint(connection,data, response.lat, response.lon + ((textPosition + 0) * size), 30)
+    add_waypoint(connection,data, response.lat - (1 * size), response.lon + ((textPosition + 0) * size), 20)
+    add_waypoint(connection,data, response.lat - (1 * size), response.lon + ((textPosition + 1) * size), 20)
+    add_waypoint(connection,data, response.lat - (2 * size), response.lon + ((textPosition + 1) * size), 10)
+    add_waypoint(connection,data, response.lat - (2 * size), response.lon + ((textPosition + 0) * size), 10)
+    
+def addO(connection,data,response,size,textPosition):
+    # O
+    add_waypoint(connection,data, response.lat, response.lon + ((textPosition + 0) * size), 30)
+    add_waypoint(connection,data, response.lat - (2 * size), response.lon + ((textPosition + 0) * size), 10)
+    add_waypoint(connection,data, response.lat - (2 * size), response.lon + ((textPosition + 1) * size), 10)
+    add_waypoint(connection,data, response.lat, response.lon + ((textPosition + 1) * size), 30)
+    add_waypoint(connection,data, response.lat, response.lon + ((textPosition + 0) * size), 30)
 
-# O
-add_waypoint(connection,data, response.lat, response.lon + (2 * size), 30)
-add_waypoint(connection,data, response.lat - (2 * size), response.lon + (2 * size), 10)
-add_waypoint(connection,data, response.lat - (2 * size), response.lon + (3 * size), 10)
-add_waypoint(connection,data, response.lat, response.lon + (3 * size), 30)
-add_waypoint(connection,data, response.lat, response.lon + (2 * size), 30)
-
-# S
-add_waypoint(connection,data, response.lat, response.lon + (5 * size), 30)
-add_waypoint(connection,data, response.lat, response.lon + (4 * size), 30)
-add_waypoint(connection,data, response.lat - (1 * size), response.lon + (4 * size), 20)
-add_waypoint(connection,data, response.lat - (1 * size), response.lon + (5 * size), 20)
-add_waypoint(connection,data, response.lat - (2 * size), response.lon + (5 * size), 10)
-add_waypoint(connection,data, response.lat - (2 * size), response.lon + (4 * size), 10)
+addS(connection,data,response,size,0)
+addO(connection,data,response,size,2)
+addS(connection,data,response,size,4)
 
 # 作成されたミッションのアップロード実行
 upload_mission(connection, data)
@@ -165,42 +167,44 @@ while True:
             print("Mission upload failed")
         break
 
-# ミッションの実行
-connection.mav.command_long_send(
-    connection.target_system,  # target_system
-    connection.target_component,  # target_component
-    mavutil.mavlink.MAV_CMD_MISSION_START,  # command
-    0,  # confirmation
-    0,  # param1 # Hold time. 
-    0,  # param2 # Acceptance radius.
-    0,  # param3 # Pass through.
-    0,  # param4 # Yaw.
-    0,  # param5 # Latitude.
-    0,  # param6 # Longitude.
-    0   # param7 # Altitude.
-)
+if not is_Sim:
+        
+    # ミッションの実行
+    connection.mav.command_long_send(
+        connection.target_system,  # target_system
+        connection.target_component,  # target_component
+        mavutil.mavlink.MAV_CMD_MISSION_START,  # command
+        0,  # confirmation
+        0,  # param1 # Hold time. 
+        0,  # param2 # Acceptance radius.
+        0,  # param3 # Pass through.
+        0,  # param4 # Yaw.
+        0,  # param5 # Latitude.
+        0,  # param6 # Longitude.
+        0   # param7 # Altitude.
+    )
 
 
-# ミッションを全部完遂するまで待機
-while True:
-    msg = connection.recv_match(type=['MISSION_ITEM_REACHED'], blocking=True)
-    if msg.get_type() == 'MISSION_ITEM_REACHED':
-        print("Reached waypoint %d" % msg.seq)
-        if msg.seq == len(data) - 1:
-            print("All waypoints reached")
-            break
+    # ミッションを全部完遂するまで待機
+    while True:
+        msg = connection.recv_match(type=['MISSION_ITEM_REACHED'], blocking=True)
+        if msg.get_type() == 'MISSION_ITEM_REACHED':
+            print("Reached waypoint %d" % msg.seq)
+            if msg.seq == len(data) - 1:
+                print("All waypoints reached")
+                break
 
-# 帰還
-connection.mav.command_long_send(
-    connection.target_system,  # target_system
-    connection.target_component,  # target_component
-    mavutil.mavlink.MAV_CMD_NAV_RETURN_TO_LAUNCH,  # command
-    0,  # confirmation
-    0,  # param1 # Hold time. 
-    0,  # param2 # Acceptance radius.
-    0,  # param3 # Pass through.
-    0,  # param4 # Yaw.
-    0,  # param5 # Latitude.
-    0,  # param6 # Longitude.
-    0   # param7 # Altitude.
-)
+    # 帰還
+    connection.mav.command_long_send(
+        connection.target_system,  # target_system
+        connection.target_component,  # target_component
+        mavutil.mavlink.MAV_CMD_NAV_RETURN_TO_LAUNCH,  # command
+        0,  # confirmation
+        0,  # param1 # Hold time. 
+        0,  # param2 # Acceptance radius.
+        0,  # param3 # Pass through.
+        0,  # param4 # Yaw.
+        0,  # param5 # Latitude.
+        0,  # param6 # Longitude.
+        0   # param7 # Altitude.
+    )
