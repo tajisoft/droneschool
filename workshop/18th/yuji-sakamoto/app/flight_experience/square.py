@@ -8,6 +8,7 @@
 # https://mavlink.io/en/mavgen_python/howto_requestmessages.html
 # https://mavlink.io/en/messages/common.html
 # https://ardupilot.org/dev/docs/copter-commands-in-guided-mode.html
+# https://mavlink.io/en/messages/common.html#MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN
 #
 import sys
 import time
@@ -19,6 +20,7 @@ flstate = 0
 lastmode = 'none'
 target_alt = 5
 staytime = 0
+retrytime = 0
 PAI = 3.14159265
 TURN180 = PAI
 TURN2LEFT = -( PAI / 2 )
@@ -27,6 +29,9 @@ stableCnt = 0
 lastYaw = 0
 lastAlt = 0
 stableCheck = 2
+isActive = False
+VPASS = 30
+YAWPASS = 20
 
 # 状態遷移制御する場合の特別な状態番号のみ名前を付ける
 # ※enumを使うと行数を浪費するので省略
@@ -35,12 +40,18 @@ STATE_INVALID = 37
 
 tick = 0.2
 
-# 現在飛行中かどうかを判定する
+# FC reboot
+def reboot(master: mavutil.mavfile):
+    master.mav.command_long_send(master.target_system, master.target_component,
+        mavutil.mavlink.MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN, 0,
+        1, 0, 0, 0, 0, 0, 0)
+
+# 高度が不正かどうかを判定する
 # 本当はARMEDとかPREARM可能かなどもチェックしたいが・・・
-def isFly(master: mavutil.mavfile) :
+def isInvalidFly(master: mavutil.mavfile) :
   recv = master.recv_match(type='GLOBAL_POSITION_INT', blocking=True)
-  print("recv.relative_alt :",recv.relative_alt)
-  if recv.relative_alt > 1000 :
+  if recv.relative_alt > 1000 and flcnt > 10 :
+    print("recv.relative_alt :", recv.relative_alt, flcnt)
     # recv = master.recv_match(type='RC_CHANNELS_SCALED', blocking=True)
     # print(recv.chan1_scaled,recv.chan2_scaled,recv.chan3_scaled,recv.chan4_scaled)
     return True
@@ -55,6 +66,7 @@ def isStable(master: mavutil.mavfile) :
   global lastYaw
   global lastAlt
   global staytime
+  global retrytime
   global stableCheck
   recv = master.recv_match(type='GLOBAL_POSITION_INT', blocking=True)
   diffYaw = lastYaw - recv.hdg
@@ -67,20 +79,25 @@ def isStable(master: mavutil.mavfile) :
     stableCnt = stableCheck
     return False
   # x/y/z方向の速度が0になり機首角度が安定して高度も安定したかどうかを判定する
-  elif ( recv.vx > -30 and recv.vx < 30 and 
-         recv.vy > -30 and recv.vy < 30 and 
-         recv.vz > -30 and recv.vz < 30 and 
-         diffAlt > -30 and diffAlt < 30 and 
-         diffYaw > -20 and diffYaw < 20 ) :
+  elif ( recv.vx > -VPASS and recv.vx < VPASS and
+         recv.vy > -VPASS and recv.vy < VPASS and
+         recv.vz > -VPASS and recv.vz < VPASS and
+         diffAlt > -VPASS and diffAlt < VPASS and
+         diffYaw > -YAWPASS and diffYaw < YAWPASS ) :
     stableCnt = stableCnt - 1
     if stableCnt <= 0 :
+      # 規定回数安定判断
       return True
     else :
       return False
-  else :
+  elif retrytime > 0 :
+    retrytime = retrytime - 1
     print('不安定',recv.vx,recv.vy,recv.vz,recv.relative_alt,recv.hdg,stableCnt)
     stableCnt = stableCheck
     return False
+  else :
+    print('不安定リトライアウト',recv.vx,recv.vy,recv.vz,recv.relative_alt,recv.hdg,stableCnt)
+    return True
 
 def intervalReq(master: mavutil.mavfile, intsec=0.1, msgid=mavutil.mavlink.MAVLINK_MSG_ID_GLOBAL_POSITION_INT):
   if intsec < 0 :
@@ -94,7 +111,10 @@ def intervalReq(master: mavutil.mavfile, intsec=0.1, msgid=mavutil.mavlink.MAVLI
 
 def delaySec2Cnt(sec):
   global tick
-  return sec / tick
+  global staytime
+  global retrytime
+  staytime =  sec / tick
+  retrytime = staytime * 1.5
 
 def goTurn(master: mavutil.mavfile,rad) :
     # message SET_POSITION_TARGET_LOCAL_NED 0 0 0 9 2503 0 0 0 0 0 0 0 0 0 3.14159 0
@@ -103,6 +123,9 @@ def goTurn(master: mavutil.mavfile,rad) :
           0,master.target_system, master.target_component,
           mavutil.mavlink.MAV_FRAME_BODY_OFFSET_NED,
           0b100111000111,0,0,0,0,0,0,0,0,0,rad,0)
+    if rad < 0 :
+      rad = -rad
+    delaySec2Cnt(rad * 4 / PAI)
 
 def goStraight(master: mavutil.mavfile,dist,alt) :
     print(dist,'m直進')
@@ -111,6 +134,12 @@ def goStraight(master: mavutil.mavfile,dist,alt) :
           0,master.target_system, master.target_component,
           mavutil.mavlink.MAV_FRAME_BODY_OFFSET_NED,
           0b110111111000,dist,0,alt,0,0,0,0,0,0,0,0)
+    if alt > 0 :
+      # 降下しながら直進の場合は完了するまで遅い
+      delaySec2Cnt(dist)
+    else :
+      # 高度維持または上昇しながら直進
+      delaySec2Cnt(dist/2)
 
 # 機体への接続（単体実行用：親スクリプトで接続していない時実行）
 def setup() -> mavutil.mavfile:
@@ -129,13 +158,17 @@ def flight(master: mavutil.mavfile, delay = 0.2):
     global flcnt
     global flstate
     global lastmode
-    global target_alt
     global staytime
     global tick
+    global isActive
     tick = delay
     try:
       #print('recv_match()',flcnt,flstate)
-      master.recv_match(type='HEARTBEAT', blocking=True)
+      recv = master.recv_match(type='HEARTBEAT', blocking=True)
+      if recv.system_status == mavutil.mavlink.MAV_STATE_ACTIVE :
+        isActive = True
+      elif recv.system_status == mavutil.mavlink.MAV_STATE_STANDBY :
+        isActive = False
       #master.recv_match(type='SYS_STATUS',blocking=False)
       nowmode = master.flightmode
       if lastmode != nowmode :
@@ -159,10 +192,16 @@ def flight(master: mavutil.mavfile, delay = 0.2):
       intervalReq(master)  # GLOBAL_POSITION_INTインターバル要求
     elif flstate == 2 :
       # ARM
-      if isFly(master) :
-        # GUIDEDに切り替えたときに既に飛行していたら無効にする
+      if isActive :
+        # GUIDEDに切り替えた時に既に飛行していたら無効にする(HEARTBEATでステータスチェック)
         flstate = STATE_INVALID
+        isActive = False
         print('FLIGHT CONTROL CANCEL')
+      elif isInvalidFly(master) :
+        # GUIDEDに切り替えたときに不正に高度の値がゼロ付近以外
+        flstate = STATE_INVALID
+        print('FLIGHT CONTROL INVALID => reboot')
+        reboot(master) # FCをrebootさせる
       elif isPreArmOk(master) :
         master.arducopter_arm()
         ack = master.recv_match(type='COMMAND_ACK', blocking=True, timeout=10)
@@ -176,19 +215,18 @@ def flight(master: mavutil.mavfile, delay = 0.2):
         #master.motors_armed_wait()
     elif flstate == 3 :
       # 離陸（高度5m）
-      target_alt = 5
       master.mav.command_long_send(
           master.target_system, master.target_component,
           mavutil.mavlink.MAV_CMD_NAV_TAKEOFF,
           0, 0, 0, 0, 0, 0, 0, target_alt)
       flstate = flstate + 1
-      target_alt = target_alt * 0.95
+      delaySec2Cnt(5)
     elif flstate == 4 :
       # 離陸完了待ち
       if isStable(master) :
           # 離陸OK
           flstate = flstate + 1
-          staytime = delaySec2Cnt(5)
+          delaySec2Cnt(5)
           print('TAKEOFF 5m')
     elif flstate == 5 :
       # 5秒ホバリング
@@ -202,7 +240,6 @@ def flight(master: mavutil.mavfile, delay = 0.2):
       print('180度右旋回')
       goTurn(master,TURN180)
       flstate = flstate + 1
-      staytime = delaySec2Cnt(5)
     elif flstate == 7 :
       # 旋回完了待ち
       if isStable(master) :
@@ -212,7 +249,6 @@ def flight(master: mavutil.mavfile, delay = 0.2):
       # 5m直進
       goStraight(master,5,0)
       flstate = flstate + 1
-      staytime = delaySec2Cnt(5)
     elif flstate == 9 :
       # A地点到達確認
       if isStable(master):
@@ -222,7 +258,6 @@ def flight(master: mavutil.mavfile, delay = 0.2):
       print('左90度旋回')
       goTurn(master,TURN2LEFT)
       flstate = flstate + 1
-      staytime = delaySec2Cnt(5)
     elif flstate == 11 :
       # 旋回完了待ち
       if isStable(master) :
@@ -232,7 +267,6 @@ def flight(master: mavutil.mavfile, delay = 0.2):
       # 6.5m直進
       goStraight(master,6.5,0)
       flstate = flstate + 1
-      staytime = delaySec2Cnt(5)
     elif flstate == 13 :
       # B地点到達確認
       if isStable(master) :
@@ -242,7 +276,6 @@ def flight(master: mavutil.mavfile, delay = 0.2):
       print('左90度旋回')
       goTurn(master,TURN2LEFT)
       flstate = flstate + 1
-      staytime = delaySec2Cnt(5)
     elif flstate == 15 :
       # 旋回完了待ち
       if isStable(master) :
@@ -252,7 +285,6 @@ def flight(master: mavutil.mavfile, delay = 0.2):
       print('10m(現在の高度との差分5m分)に高度を上げながら5m直進')
       goStraight(master, 5, -5)
       flstate = flstate + 1
-      staytime = delaySec2Cnt(5)
     elif flstate == 17 :
       # C地点到達確認
       if isStable(master) :
@@ -262,7 +294,6 @@ def flight(master: mavutil.mavfile, delay = 0.2):
       print('左90度旋回')
       goTurn(master,TURN2LEFT)
       flstate = flstate + 1
-      staytime = delaySec2Cnt(5)
     elif flstate == 19 :
       # 旋回完了待ち
       if isStable(master) :
@@ -272,7 +303,6 @@ def flight(master: mavutil.mavfile, delay = 0.2):
       print('13m直進')
       goStraight(master,13,0)
       flstate = flstate + 1
-      staytime = delaySec2Cnt(5)
     elif flstate == 21 :
       # D地点到達確認
       if isStable(master) :
@@ -282,7 +312,6 @@ def flight(master: mavutil.mavfile, delay = 0.2):
       print('左90度旋回')
       goTurn(master,TURN2LEFT)
       flstate = flstate + 1
-      staytime = delaySec2Cnt(5)
     elif flstate ==23 :
       # 旋回完了待ち
       if isStable(master) :
@@ -292,7 +321,6 @@ def flight(master: mavutil.mavfile, delay = 0.2):
       print('5mに高度を下げながら5m直進')
       goStraight(master, 5, 5)
       flstate = flstate + 1
-      staytime = delaySec2Cnt(5)
     elif flstate == 25 :
       # E地点到達確認
       if isStable(master) :
@@ -302,7 +330,6 @@ def flight(master: mavutil.mavfile, delay = 0.2):
       print('左90度旋回')
       goTurn(master,TURN2LEFT)
       flstate = flstate + 1
-      staytime = delaySec2Cnt(5)
     elif flstate ==27 :
       # 旋回完了待ち
       if isStable(master) :
@@ -312,7 +339,6 @@ def flight(master: mavutil.mavfile, delay = 0.2):
       print('6.5m直進')
       goStraight(master, 6.5, 0)
       flstate = flstate + 1
-      staytime = delaySec2Cnt(5)
     elif flstate == 29 :
       # A地点到達確認
       if isStable(master) :
@@ -322,7 +348,6 @@ def flight(master: mavutil.mavfile, delay = 0.2):
       print('左90度旋回')
       goTurn(master,TURN2LEFT)
       flstate = flstate + 1
-      staytime = delaySec2Cnt(5)
     elif flstate ==31 :
       # 旋回完了待ち
       if isStable(master) :
@@ -332,12 +357,11 @@ def flight(master: mavutil.mavfile, delay = 0.2):
       print('5m直進')
       goStraight(master, 5, 0)
       flstate = flstate + 1
-      staytime = delaySec2Cnt(5)
     elif flstate == 33 :
       # 離陸地点到達確認
       if isStable(master) :
         flstate = flstate + 1
-        staytime = delaySec2Cnt(5)
+        delaySec2Cnt(5)
         print('離陸地点到達完了')
     elif flstate == 34 :
       # 5秒ホバリング
@@ -353,7 +377,7 @@ def flight(master: mavutil.mavfile, delay = 0.2):
           mavutil.mavlink.MAV_CMD_DO_SET_MODE, 0,
           mavutil.mavlink.MAV_MODE_FLAG_CUSTOM_MODE_ENABLED, master.mode_mapping()['LAND'], 0, 0, 0, 0, 0)
       flstate = flstate + 1
-      staytime = delaySec2Cnt(5)
+      delaySec2Cnt(10)
     elif flstate == 36 :
       # print('着陸確認',staytime)
       if isStable(master) :
