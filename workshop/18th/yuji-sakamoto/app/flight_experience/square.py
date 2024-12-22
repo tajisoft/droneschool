@@ -42,13 +42,17 @@ tick = 0.2
 
 # FC reboot
 def reboot(master: mavutil.mavfile):
+    global flcnt
     master.mav.command_long_send(master.target_system, master.target_component,
         mavutil.mavlink.MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN, 0,
         1, 0, 0, 0, 0, 0, 0)
+    flcnt = 0
 
 # 高度が不正かどうかを判定する
 # 本当はARMEDとかPREARM可能かなどもチェックしたいが・・・
+# flcntのチェックをするのは高度情報取得が未確定の可能性があるため
 def isInvalidFly(master: mavutil.mavfile) :
+  global flcnt
   recv = master.recv_match(type='GLOBAL_POSITION_INT', blocking=True)
   if recv.relative_alt > 1000 and flcnt > 10 :
     print("recv.relative_alt :", recv.relative_alt, flcnt)
@@ -100,10 +104,12 @@ def isStable(master: mavutil.mavfile) :
     return True
 
 def intervalReq(master: mavutil.mavfile, intsec=0.1, msgid=mavutil.mavlink.MAVLINK_MSG_ID_GLOBAL_POSITION_INT):
+  global flcnt
   if intsec < 0 :
     intusec = INT_DISABLE # desable
   else :
     intusec = intsec * 100000
+    flcnt = 0
   master.mav.command_long_send(
     master.target_system, master.target_component,
     mavutil.mavlink.MAV_CMD_SET_MESSAGE_INTERVAL,
