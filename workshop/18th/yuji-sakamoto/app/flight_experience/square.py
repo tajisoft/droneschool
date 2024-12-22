@@ -30,6 +30,7 @@ lastYaw = 0
 lastAlt = 0
 stableCheck = 2
 isActive = False
+activeCnt = 0 # statusはstandbyモード時activeモードと交互に現れるので回数で判断するためのカウンタ
 VPASS = 30
 YAWPASS = 20
 
@@ -54,8 +55,8 @@ def reboot(master: mavutil.mavfile):
 def isInvalidFly(master: mavutil.mavfile) :
   global flcnt
   recv = master.recv_match(type='GLOBAL_POSITION_INT', blocking=True)
-  if recv.relative_alt > 1000 and flcnt > 10 :
-    print("recv.relative_alt :", recv.relative_alt, flcnt)
+  print("recv.relative_alt :", recv.relative_alt, abs(recv.relative_alt),flcnt)
+  if abs(recv.relative_alt) > 1000 and flcnt > 10 :
     # recv = master.recv_match(type='RC_CHANNELS_SCALED', blocking=True)
     # print(recv.chan1_scaled,recv.chan2_scaled,recv.chan3_scaled,recv.chan4_scaled)
     return True
@@ -107,9 +108,9 @@ def intervalReq(master: mavutil.mavfile, intsec=0.1, msgid=mavutil.mavlink.MAVLI
   global flcnt
   if intsec < 0 :
     intusec = INT_DISABLE # desable
+    flcnt = 0
   else :
     intusec = intsec * 100000
-    flcnt = 0
   master.mav.command_long_send(
     master.target_system, master.target_component,
     mavutil.mavlink.MAV_CMD_SET_MESSAGE_INTERVAL,
@@ -129,9 +130,7 @@ def goTurn(master: mavutil.mavfile,rad) :
           0,master.target_system, master.target_component,
           mavutil.mavlink.MAV_FRAME_BODY_OFFSET_NED,
           0b100111000111,0,0,0,0,0,0,0,0,0,rad,0)
-    if rad < 0 :
-      rad = -rad
-    delaySec2Cnt(rad * 4 / PAI)
+    delaySec2Cnt(abs(rad) * 4 / PAI)
 
 def goStraight(master: mavutil.mavfile,dist,alt) :
     print(dist,'m直進')
@@ -167,14 +166,24 @@ def flight(master: mavutil.mavfile, delay = 0.2):
     global staytime
     global tick
     global isActive
+    global activeCnt
     tick = delay
     try:
       #print('recv_match()',flcnt,flstate)
       recv = master.recv_match(type='HEARTBEAT', blocking=True)
+      #print("recv.system_status :",recv.system_status)
+      #print("mavutil.mavlink.MAV_STATE_ACTIVE :",mavutil.mavlink.MAV_STATE_ACTIVE)
+      #print("mavutil.mavlink.MAV_STATE_STANDBY :",mavutil.mavlink.MAV_STATE_STANDBY)
       if recv.system_status == mavutil.mavlink.MAV_STATE_ACTIVE :
-        isActive = True
+        if activeCnt<100 :
+          activeCnt = activeCnt + 1
       elif recv.system_status == mavutil.mavlink.MAV_STATE_STANDBY :
+        activeCnt = 0
+      if activeCnt > 10 :
+        isActive = True
+      else :
         isActive = False
+
       #master.recv_match(type='SYS_STATUS',blocking=False)
       nowmode = master.flightmode
       if lastmode != nowmode :
