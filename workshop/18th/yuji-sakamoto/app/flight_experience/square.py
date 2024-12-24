@@ -1,4 +1,4 @@
-# 一等無人航空機試験のスクエア飛行のルートを模擬して飛行させる
+# 一等無人航空機試験の「高度変化を伴うスクエア飛行」のルートを模擬して飛行させる
 # WayPintを使ったAUTO飛行ではなくGUIDEDで制御する
 #
 # flight()は0.2秒周期で呼び出される前提で状態遷移させて制御する
@@ -33,6 +33,7 @@ isActive = False
 activeCnt = 0 # statusはstandbyモード時activeモードと交互に現れるので回数で判断するためのカウンタ
 VPASS = 30
 YAWPASS = 20
+keepYaw = 0   # 安定待ち時もしくはホバリング時に風に煽られても機首の向きを維持するための方向情報
 
 # 状態遷移制御する場合の特別な状態番号のみ名前を付ける
 # ※enumを使うと行数を浪費するので省略
@@ -40,6 +41,35 @@ STATE_LAND = 35
 STATE_INVALID = 37
 
 tick = 0.2
+
+def deg2rad(deg) :
+    if deg > 360 :
+      deg = deg - 360
+    return (deg*PAI)/180
+
+# 機体方向維持
+# ※風に煽られても機首が変わらないようにする
+def keepingYaw(master: mavutil.mavfile) :
+    global keepYaw
+    #print('keepingYaw() keepYaw :',keepYaw)
+    master.mav.set_position_target_local_ned_send(
+          0,master.target_system, master.target_component,
+          mavutil.mavlink.MAV_FRAME_LOCAL_NED,
+          0b100111000111,0, 0, 0, 0,  0,  0,  0,  0,  0,  deg2rad(keepYaw),  0)
+          #              x  y  z  vx  vy  vz  afx afy afz YAW                YAW_rate
+
+# ホバリング中処理
+def doHobbering(master: mavutil.mavfile, cnt) :
+    global staytime
+    #print('doHobbering() staytime :',staytime, 'cnt :',cnt)
+    if staytime > 0 :
+      #print('ホバリング中',staytime)
+      keepingYaw(master)
+      staytime = staytime - 1
+      return cnt
+    else :
+      print('ホバリング完了')
+      return cnt + 1
 
 # FC reboot
 def reboot(master: mavutil.mavfile):
@@ -73,6 +103,7 @@ def isStable(master: mavutil.mavfile) :
   global staytime
   global retrytime
   global stableCheck
+  # 現在の機体状態を取得する
   recv = master.recv_match(type='GLOBAL_POSITION_INT', blocking=True)
   diffYaw = lastYaw - recv.hdg
   diffAlt = lastAlt - recv.relative_alt
@@ -83,8 +114,11 @@ def isStable(master: mavutil.mavfile) :
     staytime = staytime - 1
     stableCnt = stableCheck
     return False
+  else :
+    keepingYaw(master)
+
   # x/y/z方向の速度が0になり機首角度が安定して高度も安定したかどうかを判定する
-  elif ( recv.vx > -VPASS and recv.vx < VPASS and
+  if ( recv.vx > -VPASS and recv.vx < VPASS and
          recv.vy > -VPASS and recv.vy < VPASS and
          recv.vz > -VPASS and recv.vz < VPASS and
          diffAlt > -VPASS and diffAlt < VPASS and
@@ -126,6 +160,19 @@ def delaySec2Cnt(sec):
 def goTurn(master: mavutil.mavfile,rad) :
     # message SET_POSITION_TARGET_LOCAL_NED 0 0 0 9 2503 0 0 0 0 0 0 0 0 0 3.14159 0
     # 上記は180度右旋回の場合の設定例
+    global keepYaw
+    recv = master.recv_match(type='GLOBAL_POSITION_INT', blocking=True)
+    keepYaw = recv.hdg/100
+    #print("rad =",rad)
+    #print("goTuen() before keepYaw :",keepYaw)
+    keepYaw = deg2rad(keepYaw) # 一旦RADに変換
+    keepYaw = keepYaw + rad     # 旋回結果角度
+    keepYaw = (keepYaw*180)/PAI # degに戻す
+    if keepYaw > 360 :
+      keepYaw = keepYaw - 360
+    elif keepYaw < 0 :
+      keepYaw = keepYaw + 360
+    print("goTuen() after keepYaw :",keepYaw)
     master.mav.set_position_target_local_ned_send(
           0,master.target_system, master.target_component,
           mavutil.mavlink.MAV_FRAME_BODY_OFFSET_NED,
@@ -133,8 +180,12 @@ def goTurn(master: mavutil.mavfile,rad) :
     delaySec2Cnt(abs(rad) * 4 / PAI)
 
 def goStraight(master: mavutil.mavfile,dist,alt) :
-    print(dist,'m直進')
+    global keepYaw
+    print(dist,'m直進','高度変化:', alt)
     # message SET_POSITION_TARGET_LOCAL_NED 0 0 0 9 3576 5 0 0 0 0 0 0 0 0 0 0
+    recv = master.recv_match(type='GLOBAL_POSITION_INT', blocking=True)
+    keepYaw = recv.hdg/100
+    print("goStraight()keepYaw :",keepYaw)
     master.mav.set_position_target_local_ned_send(
           0,master.target_system, master.target_component,
           mavutil.mavlink.MAV_FRAME_BODY_OFFSET_NED,
@@ -167,6 +218,7 @@ def flight(master: mavutil.mavfile, delay = 0.2):
     global tick
     global isActive
     global activeCnt
+    global keepYaw
     tick = delay
     try:
       #print('recv_match()',flcnt,flstate)
@@ -198,13 +250,17 @@ def flight(master: mavutil.mavfile, delay = 0.2):
         flstate = 1
         print('ACTIVATE GUIDED MODE FLIGHT')
     elif master.flightmode != 'LAND' :
-      # 状態初期化
+      # GUIDED/LANDモード以外は状態初期化
       flstate = 0
     if flstate == 1 :
       # 飛行制御処理開始
       flstate = flstate + 1
       print('FLIGHT CONTROL START')
       intervalReq(master)  # GLOBAL_POSITION_INTインターバル要求
+      # 初期の機体状態を取得する
+      recv = master.recv_match(type='GLOBAL_POSITION_INT', blocking=True)
+      keepYaw = recv.hdg/100
+      print('Initial keepYaw :',keepYaw)
     elif flstate == 2 :
       # ARM
       if isActive :
@@ -244,13 +300,8 @@ def flight(master: mavutil.mavfile, delay = 0.2):
           delaySec2Cnt(5)
           print('TAKEOFF 5m')
     elif flstate == 5 :
-      # 5秒ホバリング
-      if staytime > 0 :
-        #print('ホバリング中',staytime)
-        staytime = staytime - 1
-      else :
-        print('ホバリング完了')
-        flstate = flstate + 1
+      # ホバリング
+      flstate = doHobbering(master,flstate)
     elif flstate == 6 :
       print('180度右旋回')
       goTurn(master,TURN180)
@@ -297,7 +348,7 @@ def flight(master: mavutil.mavfile, delay = 0.2):
         flstate = flstate + 1
         print('90度左旋回完了')
     elif flstate == 16 :
-      print('10m(現在の高度との差分5m分)に高度を上げながら5m直進')
+      #print('10m(現在の高度との差分5m分)に高度を上げながら5m直進')
       goStraight(master, 5, -5)
       flstate = flstate + 1
     elif flstate == 17 :
@@ -315,7 +366,7 @@ def flight(master: mavutil.mavfile, delay = 0.2):
         flstate = flstate + 1
         print('90度左旋回完了')
     elif flstate == 20 :
-      print('13m直進')
+      #print('13m直進')
       goStraight(master,13,0)
       flstate = flstate + 1
     elif flstate == 21 :
@@ -333,7 +384,7 @@ def flight(master: mavutil.mavfile, delay = 0.2):
         flstate = flstate + 1
         print('90度左旋回完了')
     elif flstate == 24 :
-      print('5mに高度を下げながら5m直進')
+      #print('5mに高度を下げながら5m直進')
       goStraight(master, 5, 5)
       flstate = flstate + 1
     elif flstate == 25 :
@@ -351,7 +402,7 @@ def flight(master: mavutil.mavfile, delay = 0.2):
         flstate = flstate + 1
         print('90度左旋回完了')
     elif flstate == 28 :
-      print('6.5m直進')
+      #print('6.5m直進')
       goStraight(master, 6.5, 0)
       flstate = flstate + 1
     elif flstate == 29 :
@@ -369,7 +420,7 @@ def flight(master: mavutil.mavfile, delay = 0.2):
         flstate = flstate + 1
         print('90度左旋回完了')
     elif flstate == 32 :
-      print('5m直進')
+      #print('5m直進')
       goStraight(master, 5, 0)
       flstate = flstate + 1
     elif flstate == 33 :
@@ -379,12 +430,8 @@ def flight(master: mavutil.mavfile, delay = 0.2):
         delaySec2Cnt(5)
         print('離陸地点到達完了')
     elif flstate == 34 :
-      # 5秒ホバリング
-      if staytime > 0 :
-        staytime = staytime - 1
-      else :
-        flstate = flstate + 1
-        print('ホバリング完了')
+      # ホバリング
+      flstate = doHobbering(master,flstate)
     elif flstate == STATE_LAND :
       # 着陸
       master.mav.command_long_send(
