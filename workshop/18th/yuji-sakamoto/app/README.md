@@ -5,6 +5,7 @@
 
 ## /etc/rc.local -> rc.pyから呼び出されるスクリプト
 ### square.py
+#### 処理概要
 1. 一等無人航空機試験の「高度変化を伴うスクエア飛行」のルートを模擬して飛行させる
 2. WayPintを使ったAUTO飛行ではなくGUIDEDで制御する
 3. flight()は0.2秒周期で呼び出される前提で状態遷移させて制御する※0.2秒の根拠は実験の結果モード変化検出できる最長時間のため
@@ -15,6 +16,22 @@
 8. 参考サイト：https://mavlink.io/en/messages/common.html
 9. 参考サイト：https://ardupilot.org/dev/docs/copter-commands-in-guided-mode.html
 10. 実機テスト動画：https://www.instagram.com/p/DDq2LVBSSes/
+
+#### テスト手順（SITL）
+1. WSL上でSITLを起動
+2. WSL上でpython square.py実行
+3. Windows上でMP起動して1.のSITLと接続（動作モニター用）
+4. 1.のSITLよりコマンド入力：(mode stabilize->mode guided)でスクエア飛行実行
+
+#### テスト手順（実機）
+0. http://10.0.2.100:3000/controllerで[Start Telemetry]しておく
+1. ラズベリーパイのrc.local->rc.py->square.pyを実行
+2. rc.pyではfrom app.flight_experience.square import flight
+3. rc.pyでmavlink-routerdでFCとUART接続しているのでUDP転送ポートに接続してflight()を0.2秒周期で呼び出す
+4. プロポでstabilize->guidedに切り替える
+5. スクエア飛行実行
+6. guided切り替え時に高度情報が異常の場合はリブートする
+7. guided切り替え後にARMできない場合は警告音後実行しない
 
 ## syakyo
 コース２（アプリケーション）用写経格納
