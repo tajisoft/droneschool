@@ -30,7 +30,7 @@
 3. rc.pyでmavlink-routerdでFCとUART接続しているのでUDP転送ポートに接続してflight()を0.2秒周期で呼び出す
 4. プロポでstabilize->guidedに切り替える
 5. スクエア飛行実行
-6. guided切り替え時に高度情報が異常の場合はリブートする
+6. guided切り替え時に高度情報が異常の場合は警告音後実行しない
 7. guided切り替え後にARMできない場合は警告音後実行しない
 
 ## syakyo
