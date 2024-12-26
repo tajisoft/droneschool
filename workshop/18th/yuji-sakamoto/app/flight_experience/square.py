@@ -71,7 +71,29 @@ def doHobbering(master: mavutil.mavfile, cnt) :
       print('ホバリング完了')
       return cnt + 1
 
+# 警告音を鳴らしたい
+# https://mavlink.io/en/messages/common.html#TUNE_FORMAT
+# https://firmware.ardupilot.org/Tools/ToneTester/#
+# https://www.reddit.com/r/QBmusic/?rdt=48044
+# PLAY_TUNE_V2(400)・・・がないのでPLAY_TUNEを使う
+# TUNE_FORMAT_QBASIC1_1(1)
+def invalidBeep(master: mavutil.mavfile):
+    global flcnt
+    #tune = "t250 n10 t200 n15 t170 n17"
+    #tune = "MFT240L8 O4aO5dc O4aO5dc O4aO5dc L16dcdcdcdc"
+    #tune = "MB t130 n25 t80 n20 t200 n20 n20 t200 n20"
+    tune = "mb L16 ed L4 e P64 L4 <a P4 > L16 fe L32 f P8 e P8 L4 d P4"
+    str1 = tune[0:30]
+    str2 = tune[30:]
+    if sys.version_info.major >= 3 and not isinstance(str1, bytes):
+      str1 = bytes(str1,"ascii")
+    if sys.version_info.major >= 3 and not isinstance(str2, bytes):
+      str2 = bytes(str2,"ascii")
+    master.mav.play_tune_send(master.target_system, master.target_component, str1, str2)
+    flcnt = 0
+
 # FC reboot
+# 確実に飛行していない判定ができないので墜落の可能性があり危険なので使わない
 def reboot(master: mavutil.mavfile):
     global flcnt
     master.mav.command_long_send(master.target_system, master.target_component,
@@ -198,6 +220,8 @@ def goStraight(master: mavutil.mavfile,dist,alt) :
       delaySec2Cnt(dist/2)
 
 # 機体への接続（単体実行用：親スクリプトで接続していない時実行）
+# SITL : tcp.0.0.1:5762
+# mavlink-routerd : 127.0.0.1:14551
 def setup() -> mavutil.mavfile:
   # master: mavutil.mavfile = mavutil.mavlink_connection(
   #  "/dev/serial0", baud=115200, source_system=1, source_component=90)
@@ -271,8 +295,12 @@ def flight(master: mavutil.mavfile, delay = 0.2):
       elif isInvalidFly(master) :
         # GUIDEDに切り替えたときに不正に高度の値がゼロ付近以外
         flstate = STATE_INVALID
-        print('FLIGHT CONTROL INVALID => reboot')
-        reboot(master) # FCをrebootさせる
+        print('FLIGHT CONTROL ALTITUDE INVALID')
+        # reboot(master) # FCをrebootさせる・・・危険なのでやらないことにする
+        # スイッチの接続不良で飛行中に墜落したのをreboot()の問題だと思ったことがきっかけだが
+        # 万が一reboot()を途中で実行した場合も同じことが起きるので無効にする
+        # なので、不正状態を示すために警告音を鳴らしたい
+        invalidBeep(master)
       elif isPreArmOk(master) :
         master.arducopter_arm()
         ack = master.recv_match(type='COMMAND_ACK', blocking=True, timeout=10)
@@ -454,6 +482,7 @@ def flight(master: mavutil.mavfile, delay = 0.2):
 if __name__ == "__main__":
     master: mavutil.mavfile = setup()
     print('接続')
+    #invalidBeep(master)
     intervalReq(master, INT_DISABLE)  # GLOBAL_POSITION_INTインターバル停止要求
     while True:
         #print('before')
