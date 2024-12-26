@@ -16,6 +16,8 @@
 8. 参考サイト：https://mavlink.io/en/messages/common.html
 9. 参考サイト：https://ardupilot.org/dev/docs/copter-commands-in-guided-mode.html
 10. 実機テスト動画：https://www.instagram.com/p/DDq2LVBSSes/
+11. 強風対策後実機テスト動画：https://www.instagram.com/p/DEC0mtiSUyR/
+
 
 #### テスト手順（SITL）
 1. WSL上でSITLを起動
