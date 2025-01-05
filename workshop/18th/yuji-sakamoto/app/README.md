@@ -19,6 +19,7 @@
 11. 参考サイト：https://ardupilot.org/dev/docs/copter-commands-in-guided-mode.html
 12. 実機テスト動画：https://www.instagram.com/p/DDq2LVBSSes/
 13. 強風対策後実機テスト動画：https://www.instagram.com/p/DEC0mtiSUyR/
+14. 強風対策後強風時実機テスト動画：https://www.instagram.com/p/DEbDB-nzPCr/
 
 #### 動作環境パッケージインストール手順
 1. Windows環境でMission Plannerセットアップ：https://firmware.ardupilot.org/Tools/MissionPlanner/MissionPlanner-latest.msiをインストール
