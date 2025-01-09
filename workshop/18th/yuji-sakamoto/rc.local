@@ -1,0 +1,28 @@
+#!/bin/sh -e
+#
+# rc.local
+#
+# This script is executed at the end of each multiuser runlevel.
+# Make sure that the script will "exit 0" on success or any other
+# value on error.
+#
+# In order to enable or disable this script just change the execution
+# bits.
+#
+# By default this script does nothing.
+
+# Print the IP address
+_IP=$(hostname -I) || true
+if [ "$_IP" ]; then
+  printf "My IP address is %s\n" "$_IP"
+fi
+
+rc="/home/pi/GitHub/droneschool/workshop/18th/yuji-sakamoto/rc.py"
+if [ -f $rc ]; then
+  printf "startup python file exist\n"
+  sudo -u pi /usr/bin/python $rc > /dev/null &
+else
+  printf "startup python file not exist\n"
+fi
+
+exit 0

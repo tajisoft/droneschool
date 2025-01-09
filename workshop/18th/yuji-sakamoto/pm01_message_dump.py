@@ -2,8 +2,15 @@ from pymavlink import mavutil
 import time
 
 # 機体への接続
+#master: mavutil.mavfile = mavutil.mavlink_connection(
+#    "127.0.0.1:14551", source_system=1, source_component=90)
+#
+# ラズベリーパイのGPIOポートのRX/TXとCubeOrangePlusのTELEM2をUART接続
+# 配線省略のためにGPSポートのTELEM3を使いたかったがなぜか接続できなかった(追及していない)。
+# TELEM1はイームズのテレメトリーユニットと接続している
 master: mavutil.mavfile = mavutil.mavlink_connection(
-    "127.0.0.1:14551", source_system=1, source_component=90)
+    "/dev/serial0", baud=115200, source_system=1, source_component=90)
+
 master.wait_heartbeat()
 
 # 全メッセージを10Hzで受信
@@ -22,4 +29,4 @@ while True:
         print(master.recv_match().to_dict())
     except:
         pass
-    time.sleep(0.01)
+    time.sleep(1.0)

@@ -1,17 +1,16 @@
 from pymavlink import mavutil
 import time
 
-# 機体への接続
+# connect to UAV drone
 master: mavutil.mavfile = mavutil.mavlink_connection(
-    "127.0.0.1:14551", source_system=1, source_component=90)
+    "tcp:172.23.16.1:5762", source_system=1, source_component=90)
 master.wait_heartbeat()
 
-# 全メッセージを10Hzで受信
-# master.mav.request_data_stream_send(
-#     master.target_system, master.target_component,
-#     0, 10, 1)
+# receive messages
+receive_msg = master.recv_match(type='HEARTBEAT', blocking=True)
+print(receive_msg)
 
-# GLOBAL_POSITION_INT(33)メッセージを10Hzで受信
+# send GLOBAL_POSITION_INT(33) message at 10Hz
 master.mav.command_long_send(
     master.target_system, master.target_component,
     mavutil.mavlink.MAV_CMD_SET_MESSAGE_INTERVAL,
@@ -22,4 +21,7 @@ while True:
         print(master.recv_match().to_dict())
     except:
         pass
-    time.sleep(0.01)
+    time.sleep(1.0)
+
+
+
