@@ -208,3 +208,6 @@ if not is_Sim:
         0,  # param6 # Longitude.
         0   # param7 # Altitude.
     )
+
+# 切断
+connection.close()
