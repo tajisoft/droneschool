@@ -24,7 +24,7 @@ master.motors_armed_wait()
 print("アーム完了")
 
 # 目標高度
-target_altitude = 3
+target_altitude = 5
 
 # 離陸
 master.mav.command_long_send(
@@ -56,5 +56,14 @@ while True:
 
     time.sleep(0.1)
 
+
+# RTLにモード変更
+mode = 'RTL'
+master.set_mode_apm(master.mode_mapping()[mode])
+
+print("着陸開始")
+# 地面への到達を確認
+master.motors_disarmed_wait()
+print("disarmed確認")
 # 切断
 master.close()
