@@ -77,7 +77,7 @@ void ModeMyfirst::run()
 // my first function
 void ModeMyfirst::myfirst_function() {
     if (myfirst_variable >= 400) {
-        GCS_SEND_TEXT(MAV_SEVERITY_CRITICAL, "My First Function, %u", myfirst_variable);
+        GCS_SEND_TEXT(MAV_SEVERITY_CRITICAL, "My First Function, %u", (unsigned int)myfirst_variable);
         myfirst_variable = 0;
     }
     myfirst_variable++;
