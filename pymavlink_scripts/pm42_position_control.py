@@ -13,7 +13,7 @@ msg = master.mav.set_position_target_local_ned_encode(
     mavutil.mavlink.MAV_FRAME_LOCAL_NED,    # フレーム
     0b0000111111000111,  # タイプマスク 0:有効, 1:無効
     0, 0, 0,    # x, y, z位置（今回は未使用）
-    2, -2, 1,   # x, y, z速度m/s
+    2, -2, -1,   # x, y, z速度m/s
     0, 0, 0,    # x, y, z加速度（今回は未使用）
     0, 0)       # ヨー, ヨーレート
 

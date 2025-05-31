@@ -1,9 +1,16 @@
 from pymavlink import mavutil
 
 # 機体への接続
+'''
 master: mavutil.mavfile = mavutil.mavlink_connection(
     "127.0.0.1:14551", source_system=1, source_component=90)
 master.wait_heartbeat()
+'''
+## IPアドレスを変える事
+master: mavutil.mavfile = mavutil.mavlink_connection(
+    "192.168.1.139:5762", source_system=1, source_component=90)
+master.wait_heartbeat()
+
 
 # メッセージ受信
 recieved_msg = master.recv_match(type='HEARTBEAT', blocking=True)

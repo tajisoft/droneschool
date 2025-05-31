@@ -7,7 +7,9 @@ master: mavutil.mavfile = mavutil.mavlink_connection(
 master.wait_heartbeat()
 
 # 変更後のモード
-mode = "RTL"
+#mode = "RTL"
+mode = "AUTO"
+
 
 # モードが有効かをチェック
 if mode not in master.mode_mapping():

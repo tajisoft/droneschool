@@ -85,6 +85,11 @@ if __name__ == '__main__':
     print("ミッションへのウェイポイント追加完了")
     print_mission(downloaded_mission)
 
+    # ウェイポイントの追加
+    add_waypoint(downloaded_mission, lat=35.879, lon=140.339, alt=5)
+    print("ミッションへのウェイポイント追加完了")
+    print_mission(downloaded_mission)
+
     # アップロード
     upload_mission(master, downloaded_mission)
     print("ミッションアップロード完了")
