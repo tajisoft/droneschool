@@ -2,9 +2,16 @@ from pymavlink import mavutil
 import time
 
 # 機体への接続
+'''
 master: mavutil.mavfile = mavutil.mavlink_connection(
     "127.0.0.1:14551", source_system=1, source_component=90)
 master.wait_heartbeat()
+''''
+## IPアドレスを変える事
+master: mavutil.mavfile = mavutil.mavlink_connection(
+    "192.168.1.139:5762", source_system=1, source_component=90)
+master.wait_heartbeat()
+
 
 # ターゲットシステムID、コンポーネントIDを表示
 print(f"target_system: {master.target_system}, target_component: {master.target_component}")
