@@ -1,1 +1,2 @@
 Hello, ArduPilot!
+my_drone_pkgは作りかけなので飛行させません
