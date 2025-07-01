@@ -7,6 +7,80 @@ from geopy.point import Point
 
 ARMTEST = False  # テストモードを有効にする
 WPSPEED = 3.0  # WPNAV_SPEEDのデフォルト値（m/s）
+FC_SYSID = 1  # 初期値（Mission Planner以外のシステムID）
+FC_COMPID = 1  # 初期値（Mission Planner以外のコンポーネントID）
+
+def wait_fc_heartbeat(master):
+    global FC_SYSID, FC_COMPID
+    while True:
+        msg = master.recv_match(type="HEARTBEAT", blocking=True)
+        if msg.get_srcSystem() != 255:  # Mission Planner以外
+            FC_SYSID = msg.get_srcSystem()
+            FC_COMPID = msg.get_srcComponent()
+            break
+    return msg
+
+def recv_match_filtered(master, filter_fn, *args, **kwargs):
+    """
+    指定されたフィルター関数に合致するメッセージを受信する
+    Args:
+        master (mavutil.mavfile): 接続済みのMAVLinkオブジェクト
+        filter_fn (callable)
+            フィルター関数。メッセージを引数に取り、True/Falseを返す。
+        *args, **kwargs: mavutil.recv_matchの引数
+    Returns:
+        mavutil.mavlink.MAVLink_message: フィルターに合致したメッセージ
+    """
+    msg = master.recv_match(*args, **kwargs)
+    if msg and filter_fn(msg):
+        return msg
+    return None
+
+def is_from_fc(msg):
+    """
+    メッセージがFCからのものであるかを確認する
+    Args:
+        msg (mavutil.mavlink.MAVLink_message): チェックするメッセージ
+    Returns:
+        bool: FCからのメッセージであればTrue、そうでなければFalse
+    """
+    return msg.get_srcSystem() == FC_SYSID and msg.get_srcComponent() == FC_COMPID
+
+def recv_from_fc(master, *args, **kwargs):
+    """
+    FCからのメッセージを受信するためのラッパー関数
+    Args:
+        master (mavutil.mavfile): 接続済みのMAVLinkオブジェクト
+        *args, **kwargs: mavutil.recv_matchの引数
+    Returns:
+        mavutil.mavlink.MAVLink_message: FCからのメッセージ
+    """
+    return recv_match_filtered(master, is_from_fc, *args, **kwargs)
+
+def resolve_enum_short(enum_type: str, value: int):
+    """
+    Resolves the short name of an enum value from a MAVLink enum type.
+
+    Args:
+        enum_type (str): The name of the MAVLink enum type (e.g., "MAV_MODE").
+        value (int): The integer value of the enum.
+
+    Returns:
+        str: The short name of the enum value with the enum type prefix removed,
+             or a string indicating the value is unknown if not found.
+
+    Example:
+        >>> resolve_enum_short("MAV_MODE", 1)
+        'MANUAL_ARMED'
+        >>> resolve_enum_short("MAV_MODE", 999)
+        'UNKNOWN MAV_MODE: 999'
+    """
+    try:
+        full_name = mavutil.mavlink.enums[enum_type][value].name
+        prefix = enum_type.upper() + "_"
+        return full_name.removeprefix(prefix)  # Python 3.9+
+    except KeyError:
+        return f"UNKNOWN {enum_type}: {value}"
 
 def connect_to_mavlink(connection_string):
     """
@@ -20,20 +94,63 @@ def connect_to_mavlink(connection_string):
     """
     master = mavutil.mavlink_connection(connection_string, source_system=1, source_component=90)
     print(f"Waiting for heartbeat on {connection_string}...")
-    hb = master.wait_heartbeat()
-    print("Heartbeat received!")
-
-
+    hb = wait_fc_heartbeat(master)
+    print(f"Heartbeat received from FC: sysid={FC_SYSID}, compid={FC_COMPID}")
     # デバッグ用の情報を表示(MAVProxyやMAVLink Router経由で接続した場合、MAVTypeがおかしくなることがあるので注意)
-    # master.target_system = hb.get_srcSystem()
-    # master.target_component = hb.get_srcComponent()
-    # print(f"target_system: {master.target_system}, target_component: {master.target_component}")
-    # print("MAV type:", hb.type)
+    print(f"target_system: {master.target_system}, target_component: {master.target_component}")
+    print("MAV type:", resolve_enum_short("MAV_TYPE", hb.type))
     # print("Mode mapping:")
     # for name, mode_id in master.mode_mapping().items():
     #     print(f"  {name}: {mode_id}")
-
     return master
+
+def resolve_msg_id(name: str) -> int:
+    const_name = f"MAVLINK_MSG_ID_{name.upper()}"
+    if hasattr(mavutil.mavlink, const_name):
+        return getattr(mavutil.mavlink, const_name)
+    else:
+        raise ValueError(f"Unknown message name: {name}")
+
+def request_message(master, msg_type: str, interval_us: int = 100000):
+    """
+    指定したメッセージタイプを指定間隔で受信するようにリクエストする
+    
+    Args:
+        master (mavutil.mavfile): 接続済みのMAVLinkオブジェクト
+        msg_type (str): リクエストするメッセージのタイプ（例: "GLOBAL_POSITION_INT"）
+        interval_us (int): 受信間隔（マイクロ秒）
+    """
+    msg_id = resolve_msg_id(msg_type)
+
+    master.mav.command_long_send(
+        master.target_system,
+        master.target_component,
+        mavutil.mavlink.MAV_CMD_SET_MESSAGE_INTERVAL,
+        0,  # confirmation
+        msg_id,  # message ID
+        interval_us,  # interval in microseconds
+        0, 0, 0, 0, 0  # unused parameters
+    )
+    
+def request_message_and_wait(master, msg_type: str, interval_us: int = 100000, timeout=5.0):
+    """
+    指定したメッセージタイプをリクエストし、指定時間内に受信できるか確認する
+    Args:
+        master (mavutil.mavfile): 接続済みのMAVLinkオブジェクト
+        msg_type (str): リクエストするメッセージのタイプ（例: "GLOBAL_POSITION_INT"）
+        interval_us (int): 受信間隔（マイクロ秒）
+        timeout (float): タイムアウト時間（秒）
+    Returns:
+        bool: メッセージを受信できたかどうか
+    """
+    request_message(master, msg_type, interval_us)
+    msg = master.recv_match(type=msg_type, blocking=True, timeout=timeout)  # 確認のために最初のメッセージを受信
+    if msg is None:
+        print(f"Warning: No initial message received for {msg_type}. Check connection or message type.")
+        return False
+    print(f"Requested {msg_type} at {1000000/interval_us} Hz.")
+    return True
+
 
 def request_param(master, param_id: str):
     """param_request_read_send を安全に送る"""
@@ -48,7 +165,7 @@ def wait_param_value(master, param_id: str, timeout=3.0):
     """PARAM_VALUE を待つ"""
     start = time.time()
     while time.time() - start < timeout:
-        msg = master.recv_match(type="PARAM_VALUE", blocking=True, timeout=0.2)
+        msg = recv_from_fc(master, type="PARAM_VALUE", blocking=True, timeout=0.2)
         if msg and msg.param_id.strip('\x00') == param_id:
             return msg.param_value
     raise TimeoutError(f"Timeout while waiting for {param_id}")
@@ -104,7 +221,7 @@ def change_mode_and_confirm(master, mode_name, timeout=10.0):
 
     start_time = time.time()
     while time.time() - start_time < timeout:
-        msg = master.recv_match(type="HEARTBEAT", blocking=True, timeout=0.2)
+        msg = recv_from_fc(master, type="HEARTBEAT", blocking=True, timeout=0.2)
         if msg and is_current_mode(master, mode_name):
             print(f"Mode confirmed: {mode_name}")
             return True
@@ -125,7 +242,7 @@ def arm_drone(master, timeout=10.0):
     # ARM 状態確認（HEARTBEAT から armedフラグを見る）
     start_time = time.time()
     while time.time() - start_time < timeout:
-        msg = master.recv_match(type="HEARTBEAT", blocking=True, timeout=0.2)
+        msg = recv_from_fc(master, type="HEARTBEAT", blocking=True, timeout=0.2)
         if msg and master.motors_armed():
             print("Drone is armed!")
             return True
@@ -148,7 +265,7 @@ def test_arm_disarm(master, wait_sec=2):
 
     start_time = time.time()
     while time.time() - start_time < 5.0:
-        msg = master.recv_match(type="HEARTBEAT", blocking=True, timeout=0.2)
+        msg = recv_from_fc(master, type="HEARTBEAT", blocking=True, timeout=0.2)
         if msg and not master.motors_armed():
             print("Drone is disarmed!")
             print("=== ARM/DISARM TEST PASSED ===")
@@ -198,7 +315,7 @@ def takeoff_to_altitude(master, target_alt=5.0, timeout_per_meter=3.0, min_timeo
     # --- 高度監視 ---
     start_time = time.time()
     while time.time() - start_time < timeout:
-        msg = master.recv_match(type='GLOBAL_POSITION_INT', blocking=True, timeout=1)
+        msg = recv_from_fc(master, type='GLOBAL_POSITION_INT', blocking=True, timeout=1)
         if msg:
             current_alt = msg.relative_alt / 1000.0  # mm → m
             print(f"  Current Altitude: {current_alt:.2f} m", end='\r')
@@ -243,7 +360,7 @@ def wait_until_position_reached(master, target_lat, target_lon, threshold_m=2.0,
     """指定位置に到達するまで待機"""
     start_time = time.time()
     while time.time() - start_time < timeout:
-        msg = master.recv_match(type="GLOBAL_POSITION_INT", blocking=True, timeout=0.2)
+        msg = recv_from_fc(master, type="GLOBAL_POSITION_INT", blocking=True, timeout=0.2)
         if msg:
             cur_lat = msg.lat / 1e7
             cur_lon = msg.lon / 1e7
@@ -260,7 +377,7 @@ def send_guided_single_waypoint(master, offset_m=10.0, bearing_deg=0.0, threshol
     print(f"\n--- GUIDED waypoint test: {offset_m}m @ {bearing_deg}° ---")
 
     # 現在位置取得
-    msg = master.recv_match(type="GLOBAL_POSITION_INT", blocking=True, timeout=5)
+    msg = recv_from_fc(master, type="GLOBAL_POSITION_INT", blocking=True, timeout=5)
     if msg is None:
         print("Failed to get current position.")
         return False
@@ -403,7 +520,7 @@ def test_guided_dict_waypoints(master, radius=10.0, threshold_m=1.0, points_per_
     print(f"\n--- GUIDED 8の字ウェイポイントテスト: 半径 {radius}m ---")
 
     # 現在位置取得
-    msg = master.recv_match(type="GLOBAL_POSITION_INT", blocking=True, timeout=5)
+    msg = recv_from_fc(master, type="GLOBAL_POSITION_INT", blocking=True, timeout=5)
     if msg is None:
         print("Failed to get current position.")
         return False
@@ -431,17 +548,20 @@ def main():
     parser.add_argument(
         "--connect",
         type=str,
-        default='tcp:172.26.176.1:5763',
+        default='tcp:172.30.32.1:5763',
+        # default='tcp:172.26.176.1:5763',
         # default='127.0.0.1:14551',
         help="Connection string (e.g. '127.0.0.1:14551' or '/dev/ttyTHS1')"
     )
     args = parser.parse_args()
 
     # MAVLinkに接続
-    master = mavutil.mavlink_connection(args.connect)
-    print(f"Waiting for heartbeat on {args.connect}...")
-    master.wait_heartbeat()
-    print(f"Heartbeat received from system {master.target_system} component {master.target_component}")
+    master = connect_to_mavlink(args.connect)
+    
+    # 受信メッセージの設定
+    if not request_message_and_wait(master, "GLOBAL_POSITION_INT", interval_us=100000):
+        print("Failed to request GLOBAL_POSITION_INT messages.")
+        return
 
     # パラメータの設定と確認
     param_name = "WPNAV_SPEED"
@@ -451,7 +571,6 @@ def main():
     print(f"Setting {param_name} to {WPSPEED:.2f} m/s ({param_value:.0f} cm/s)...")
     actual_value = set_and_verify_param(master, param_name, param_value, param_type)
     print(f"Confirmed {param_name}: {actual_value / 100:.2f} m/s")
-
 
     # モード変更とARM/DISARMのテスト
     if ARMTEST:
