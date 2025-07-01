@@ -548,9 +548,9 @@ def main():
     parser.add_argument(
         "--connect",
         type=str,
-        default='tcp:172.30.32.1:5763',
+        # default='tcp:172.30.32.1:5763',
         # default='tcp:172.26.176.1:5763',
-        # default='127.0.0.1:14551',
+        default='127.0.0.1:14551',
         help="Connection string (e.g. '127.0.0.1:14551' or '/dev/ttyTHS1')"
     )
     args = parser.parse_args()
