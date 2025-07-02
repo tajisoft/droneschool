@@ -6,7 +6,7 @@ from geopy.distance import distance
 from geopy.point import Point
 
 ARMTEST = False  # テストモードを有効にする
-WPSPEED = 3.0  # WPNAV_SPEEDのデフォルト値（m/s）
+WPSPEED = 10.0  # WPNAV_SPEEDのデフォルト値（m/s）
 FC_SYSID = 1  # 初期値（Mission Planner以外のシステムID）
 FC_COMPID = 1  # 初期値（Mission Planner以外のコンポーネントID）
 
@@ -146,9 +146,7 @@ def request_message_and_wait(master, msg_type: str, interval_us: int = 100000, t
     request_message(master, msg_type, interval_us)
     msg = master.recv_match(type=msg_type, blocking=True, timeout=timeout)  # 確認のために最初のメッセージを受信
     if msg is None:
-        print(f"Warning: No initial message received for {msg_type}. Check connection or message type.")
         return False
-    print(f"Requested {msg_type} at {1000000/interval_us} Hz.")
     return True
 
 
@@ -216,14 +214,12 @@ def is_current_mode(master, mode_name):
 
 def change_mode_and_confirm(master, mode_name, timeout=10.0):
     """指定モードへ変更して、flightmodeで確認を行う"""
-    print(f"Requesting mode change to: {mode_name}")
     master.set_mode(mode_name)
 
     start_time = time.time()
     while time.time() - start_time < timeout:
         msg = recv_from_fc(master, type="HEARTBEAT", blocking=True, timeout=0.2)
         if msg and is_current_mode(master, mode_name):
-            print(f"Mode confirmed: {mode_name}")
             return True
         time.sleep(0.1)  # 過負荷防止
 
@@ -231,7 +227,6 @@ def change_mode_and_confirm(master, mode_name, timeout=10.0):
     return False
 
 def arm_drone(master, timeout=10.0):
-    print("Switching to GUIDED mode...")
     if not change_mode_and_confirm(master, "GUIDED", timeout=timeout):
         print("Failed to enter GUIDED mode.")
         return False
@@ -550,7 +545,7 @@ def main():
         type=str,
         # default='tcp:172.30.32.1:5763',
         # default='tcp:172.26.176.1:5763',
-        default='127.0.0.1:14551',
+        default='127.0.0.1:14553',
         help="Connection string (e.g. '127.0.0.1:14551' or '/dev/ttyTHS1')"
     )
     args = parser.parse_args()
@@ -559,9 +554,12 @@ def main():
     master = connect_to_mavlink(args.connect)
     
     # 受信メッセージの設定
-    if not request_message_and_wait(master, "GLOBAL_POSITION_INT", interval_us=100000):
-        print("Failed to request GLOBAL_POSITION_INT messages.")
+    msg_type = "GLOBAL_POSITION_INT"
+    interval_us = 100000
+    if not request_message_and_wait(master, msg_type, interval_us):
+        print(f"Warning: No initial message received for {msg_type}. Check connection or message type.")
         return
+    print(f"Requested GLOBAL_POSITION_INT at {1000000/interval_us} Hz.")
 
     # パラメータの設定と確認
     param_name = "WPNAV_SPEED"
@@ -584,9 +582,13 @@ def main():
         # 実際のテイクオフを行う流れ
     print("Preparing for takeoff...")
     time.sleep(3)  # 少し待つ
-    if not change_mode_and_confirm(master, "GUIDED"):
-        print("Failed to change to GUIDED mode.")
+
+    mode_name = "GUIDED"
+    print(f"Requesting mode change to: {mode_name}")
+    if not change_mode_and_confirm(master, mode_name):
+        print(f"Failed to change to {mode_name} mode.")
         return
+    print(f"Mode confirmed: {mode_name}")
 
     if not arm_drone(master):
         print("Failed to arm drone.")
@@ -598,13 +600,13 @@ def main():
         print("Takeoff succeeded.")
 
     print("Starting GUIDED movement test...")
-    if not send_guided_single_waypoint(master, offset_m=5.0, bearing_deg=120.0):
+    if not send_guided_single_waypoint(master, offset_m=5.0, bearing_deg=0.0):
         print("GUIDED test failed.")
     else:
         print("GUIDED test succeeded.")
 
     print("Starting 8の字飛行 test...")
-    if not test_guided_dict_waypoints(master, radius=2.0, points_per_circle=16, heading_deg=20.0):
+    if not test_guided_dict_waypoints(master, radius=5.0, points_per_circle=16, heading_deg=0.0):
         print("8の字飛行に失敗しました")
     else:
         print("8の字飛行成功！")
