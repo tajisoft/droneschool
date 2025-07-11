@@ -402,7 +402,7 @@ def send_guided_single_waypoint(master, offset_m=10.0, bearing_deg=0.0, threshol
     print("Waypoint test succeeded." if success else "Waypoint test failed.")
     return success
 
-def send_guided_waypoints_from_dict(master, waypoints_dict, threshold_m=1.0):
+def send_guided_waypoints_from_dict(master, waypoints_dict, threshold_m=1.0, timeout=20.0):
     """
     辞書形式の複数ウェイポイントにGUIDEDで順次移動
 
@@ -419,7 +419,7 @@ def send_guided_waypoints_from_dict(master, waypoints_dict, threshold_m=1.0):
         lat, lon, alt = wp["lat"], wp["lon"], wp["alt"]
         print(f"\n→ Moving to WP {key}: lat={lat:.7f}, lon={lon:.7f}, alt={alt:.2f}m")
         send_guided_waypoint(master, lat, lon, alt)
-        success = wait_until_position_reached(master, lat, lon, threshold_m=threshold_m)
+        success = wait_until_position_reached(master, lat, lon, threshold_m=threshold_m, timeout=timeout)
         if not success:
             print(f"Failed to reach waypoint {key}.")
             return False
