@@ -66,6 +66,23 @@ def generate_do_jump_item(target_sys, target_comp, seq, jump_to_seq=1, repeat_co
         z=0
     )
 
+def generate_loiter_time_item(target_sys, target_comp, seq, lat=0, lon=0, alt=0, loiter_time=1.0):
+    return mavutil.mavlink.MAVLink_mission_item_int_message(
+        target_system=target_sys,
+        target_component=target_comp,
+        seq=seq,
+        frame=mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT_INT,
+        command=mavutil.mavlink.MAV_CMD_NAV_LOITER_TIME,
+        current=0,
+        autocontinue=1,
+        param1=loiter_time,
+        param2=0, param3=0, param4=0,
+        x=int(lat * 1e7),
+        y=int(lon * 1e7),
+        z=alt
+    )
+
+
 def upload_mission(master, mission_items):
     master.waypoint_clear_all_send()
     master.waypoint_count_send(len(mission_items))
@@ -111,7 +128,7 @@ if __name__ == '__main__':
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--connect', type=str, default='tcp:172.26.176.1:5763')
+    parser.add_argument('--connect', type=str, default='tcp:172.26.176.1:5773')
     args = parser.parse_args()
 
     print(f"Connecting to {args.connect}...")
@@ -145,6 +162,8 @@ if __name__ == '__main__':
     }
 
     mission_items = convert_dict_to_mission_items(patrol_route, master.target_system, master.target_component, current_lat, current_lon, current_alt)
+    loiter_time = generate_loiter_time_item(master.target_system, master.target_component, seq=len(mission_items))
+    mission_items.append(loiter_time)
     do_jump = generate_do_jump_item(master.target_system, master.target_component, seq=len(mission_items), jump_to_seq=1)
     mission_items.append(do_jump)
 
