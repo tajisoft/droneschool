@@ -1,25 +1,31 @@
 from pymavlink import mavutil
 
-def convert_dict_to_mission_items(route_dict, target_sys, target_comp, current_lat, current_lon, current_alt, start_seq=0):
+def convert_dict_to_mission_items(
+    route_dict, target_sys, target_comp,
+    current_lat=None, current_lon=None, current_alt=None,
+    start_seq=0, include_dummy=False):
     mission_items = []
     seq = start_seq
 
-    # ダミーWP（seq=0）
-    dummy_wp = mavutil.mavlink.MAVLink_mission_item_int_message(
-        target_system=target_sys,
-        target_component=target_comp,
-        seq=seq,
-        frame=mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT_INT,
-        command=mavutil.mavlink.MAV_CMD_NAV_WAYPOINT,
-        current=1,
-        autocontinue=1,
-        param1=1.0, param2=0, param3=0, param4=0,
-        x=int(current_lat * 1e7),
-        y=int(current_lon * 1e7),
-        z=current_alt
-    )
-    mission_items.append(dummy_wp)
-    seq += 1
+    if include_dummy:
+        if None in (current_lat, current_lon, current_alt):
+            raise ValueError("current_lat, current_lon, current_alt must be provided when include_dummy=True")
+
+        dummy_wp = mavutil.mavlink.MAVLink_mission_item_int_message(
+            target_system=target_sys,
+            target_component=target_comp,
+            seq=seq,
+            frame=mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT_INT,
+            command=mavutil.mavlink.MAV_CMD_NAV_WAYPOINT,
+            current=1,
+            autocontinue=1,
+            param1=1.0, param2=0, param3=0, param4=0,
+            x=int(current_lat * 1e7),
+            y=int(current_lon * 1e7),
+            z=current_alt
+        )
+        mission_items.append(dummy_wp)
+        seq += 1
 
     for key in sorted(route_dict, key=lambda k: int(k)):
         wp = route_dict[key]

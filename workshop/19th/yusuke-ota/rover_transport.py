@@ -21,6 +21,8 @@ class RoverMissionThread(threading.Thread):
         self._event = threading.Event()
         self._stop_event = threading.Event()
         self.master = None
+        self.forward_callback = None
+        self.return_callback = None
 
     def set_event(self):
         self._event.set()
@@ -28,6 +30,24 @@ class RoverMissionThread(threading.Thread):
     def stop(self):
         self._stop_event.set()
         self._event.set()
+
+    def set_forward_callback(self, func):
+        self.forward_callback = func
+
+    def set_return_callback(self, func):
+        self.return_callback = func
+
+    def hold_and_wait(self, description, callback=None):
+        print(f"[{self.name}] {description}完了 → HOLD")
+        change_mode_and_confirm(self.master, "HOLD")
+        if callback:
+            print(f"[{self.name}] コールバック実行: {callback.__name__}")
+            callback()
+        print(f"[{self.name}] 次のイベント待機中...")
+        self._event.wait()
+        self._event.clear()
+        print(f"[{self.name}] 再開 → AUTO")
+        change_mode_and_confirm(self.master, "AUTO")
 
     def wait_for_mission_seq(self, target_seq):
         while not self._stop_event.is_set():
@@ -37,15 +57,6 @@ class RoverMissionThread(threading.Thread):
                 return True
             time.sleep(0.5)
         return False
-
-    def hold_and_wait(self, description):
-        print(f"[{self.name}] {description}完了 → HOLD")
-        change_mode_and_confirm(self.master, "HOLD")
-        print(f"[{self.name}] 次のイベント待機中...")
-        self._event.wait()
-        self._event.clear()
-        print(f"[{self.name}] 再開 → AUTO")
-        change_mode_and_confirm(self.master, "AUTO")
 
     def append_loiter_at_end(self, mission_items, wp, seq):
         mission_items.append(generate_loiter_time_item(
@@ -69,17 +80,10 @@ class RoverMissionThread(threading.Thread):
 
             mission_items = []
 
-            # ダミーWP追加
-            dummy_items = convert_dict_to_mission_items(
-                {}, self.master.target_system, self.master.target_component,
-                current_lat, current_lon, current_alt, start_seq=0
-            )
-            mission_items.extend(dummy_items)
-
             # forward追加
             forward_items = convert_dict_to_mission_items(
                 self.forward_route, self.master.target_system, self.master.target_component,
-                current_lat, current_lon, current_alt, start_seq=len(mission_items)
+                current_lat, current_lon, current_alt, start_seq=len(mission_items),include_dummy=True
             )
             mission_items.extend(forward_items)
             forward_loiter_seq = self.append_loiter_at_end(mission_items, list(self.forward_route.values())[-1], len(mission_items))
@@ -100,24 +104,23 @@ class RoverMissionThread(threading.Thread):
 
             upload_mission(self.master, mission_items)
             self.master.mav.mission_set_current_send(self.master.target_system, self.master.target_component, 1)
-            change_mode_and_confirm(self.master, "AUTO")
 
             print(f"[{self.name}] ミッションループ開始")
 
             while not self._stop_event.is_set():
+                self.hold_and_wait("preparation", callback=self.forward_callback)
+
                 self.wait_for_mission_seq(forward_loiter_seq)
-                self.hold_and_wait("Forward")
+                self.hold_and_wait("Forward", callback=self.forward_callback)
+
                 self.wait_for_mission_seq(return_loiter_seq)
-                self.hold_and_wait("Return")
 
         except Exception as e:
             print(f"[{self.name}] 例外: {e}")
-
         finally:
             if self.master:
                 print(f"[{self.name}] 終了処理 → RTL")
                 change_mode_and_confirm(self.master, "RTL")
-
 
 if __name__ == "__main__":
     forward_route = {
@@ -149,3 +152,5 @@ if __name__ == "__main__":
             rover.set_event()
     except KeyboardInterrupt:
         signal_handler(None, None)
+        
+

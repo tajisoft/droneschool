@@ -49,7 +49,8 @@ class QuadplanePatrolThread(threading.Thread):
                 master.target_component,
                 current_lat,
                 current_lon,
-                current_alt
+                current_alt,
+                include_dummy=True
             )
             do_jump = generate_do_jump_item(
                 master.target_system,
